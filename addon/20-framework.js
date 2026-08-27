@@ -31,7 +31,7 @@
     /* 浅色模式：整体反色滤镜作用于 App 容器（插件 UI 不受影响，走上面的变量） */
     'html.zz-light .zz-apphold{filter:invert(1) hue-rotate(180deg) contrast(.92) saturate(1.2);background:#0d0a06}',
     /* 浮动按钮 */
-    '.zz-fabs{position:fixed;right:10px;bottom:calc(150px + env(safe-area-inset-bottom));z-index:8000;display:flex;flex-direction:column;gap:10px}',
+    '.zz-fabs{position:fixed;right:10px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:8000;display:flex;flex-direction:column;gap:10px}',
     '.zz-fab{position:relative;width:46px;height:46px;border-radius:4px;border:1px solid var(--zz-line);background:rgba(13,20,36,.88);',
     'color:var(--zz-cyan);display:flex;align-items:center;justify-content:center;cursor:pointer;',
     'box-shadow:0 0 14px rgba(0,240,255,.22);-webkit-tap-highlight-color:transparent}',
@@ -72,12 +72,13 @@
     '.zz-inhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:6px 4px 7px}',
     '.zz-inhead b{font:600 10px "Share Tech Mono",monospace;color:#00F0FF;opacity:.8;letter-spacing:.5px;font-weight:600}',
     '.zz-inhead span{font:600 10px "Share Tech Mono",monospace;color:#5E7186;white-space:nowrap}',
-    '.zz-inthumb{position:relative;border:1px solid rgba(0,240,255,.18);border-radius:3px;overflow:hidden}',
-    '.zz-inthumb svg{width:100%;height:auto;display:block}',
+    /* 统一预览视窗：固定高度，地图按比例居中放入，留边与图底同色 */
+    '.zz-inthumb{position:relative;height:184px;background:#0A1220;border:1px solid rgba(0,240,255,.18);border-radius:3px;overflow:hidden}',
+    '.zz-inthumb svg{width:100%;height:100%;display:block}',
     '.zz-inzoom{position:absolute;right:8px;bottom:8px;padding:4px 9px;border:1px solid rgba(0,240,255,.4);border-radius:3px;background:rgba(10,15,28,.78);color:#00F0FF;font:600 10px "Share Tech Mono",monospace}',
-    /* 路线图上标示当前所看行程段：该段站点青色下划线+浅底微光 */
-    '.zz-onseg{background:rgba(0,240,255,.07);border-radius:3px;box-shadow:0 0 10px rgba(0,240,255,.18)}',
-    '.zz-onseg::after{content:"";width:26px;height:2px;background:#00F0FF;margin-top:3px;border-radius:1px;box-shadow:0 0 8px rgba(0,240,255,.8)}',
+    /* 路线图上标示当前所看行程段：站名青色加粗+细下划线（无背景/发光，不出界不叠加） */
+    '.zz-onseg>div:nth-of-type(2){color:#00F0FF!important;font-weight:700!important}',
+    '.zz-onseg::after{content:"";width:24px;height:2px;background:#00F0FF;margin-top:3px;border-radius:1px}',
     /* 预览卡位于 App 容器内：浅色模式经反色滤镜呈现，故其内部（含 SVG 地图）
        固定使用深色值，交由滤镜映射为日间色，避免变量被二次反转 */
     'html.zz-light .zz-inline{--zz-cyan:#00F0FF;--zz-mag:#FF2E88;--zz-line:rgba(0,240,255,.3);',
@@ -559,6 +560,19 @@
     }
   }
 
+  /* 隐藏头图上方的预出发日期提示条（旅行未开始 · 正在看 Dn 计划 · T-N DAYS），
+     腾出首屏空间保证 ROUTE 卡整体可见 */
+  function hideBanner() {
+    var divs = document.getElementsByTagName('div');
+    for (var i = 0; i < divs.length; i++) {
+      var t = (divs[i].textContent || '').trim();
+      if (t.indexOf('旅行未开始') === 0 && t.length < 60) {
+        if (divs[i].style.display !== 'none') divs[i].style.display = 'none';
+        return;
+      }
+    }
+  }
+
   /* App 自带的「节点可点 → 弹节点卡片」提示已不再成立，改写为切图提示 */
   function rewriteHint(r) {
     var divs = r.card.querySelectorAll('div');
@@ -604,6 +618,7 @@
         if (!document.getElementById('zz-addon-style')) document.head.appendChild(st);
         if (tagAppHolder()) {
           mountFabs();
+          hideBanner();
           ensureInline();
           if (ov && !document.body.contains(ov)) document.body.appendChild(ov);
         }
