@@ -383,6 +383,8 @@ document.addEventListener('DOMContentLoaded', async function() {
   </script>
 
 
+
+
 <!--ZZ_ADDON_BEGIN-->
 <script id="zz-addon">
 /* ============================================================
@@ -1248,6 +1250,23 @@ __ZZ_MAPS.push({
     'font:10.5px/1.6 "Share Tech Mono",monospace;color:var(--zz-dim);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}',
     '.zz-leg i{display:inline-block;width:16px;height:0;border-top:2.5px solid var(--zz-cyan);vertical-align:middle;margin:0 4px 2px 8px}',
     '.zz-leg i.r{border-top-style:dashed;border-color:var(--zz-mag)}.zz-leg i.s{border-top-style:dotted}',
+    /* 行程页内嵌地图预览卡（挂在 ROUTE 路线卡下方） */
+    '.zz-inline{margin:10px 14px 0;border-radius:4px;border:1px solid rgba(0,240,255,.22);background:rgba(0,240,255,.04);overflow:hidden;cursor:pointer;-webkit-tap-highlight-color:transparent}',
+    '.zz-inhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:9px 12px 7px}',
+    '.zz-inhead b{font:600 10px "Share Tech Mono",monospace;color:#00F0FF;opacity:.8;letter-spacing:.5px;font-weight:600}',
+    '.zz-inhead span{font:600 10px "Share Tech Mono",monospace;color:#5E7186;white-space:nowrap}',
+    '.zz-inthumb{position:relative;border-top:1px solid rgba(0,240,255,.15)}',
+    '.zz-inthumb svg{width:100%;height:auto;display:block}',
+    '.zz-inzoom{position:absolute;right:8px;bottom:8px;padding:4px 9px;border:1px solid rgba(0,240,255,.4);border-radius:3px;background:rgba(10,15,28,.78);color:#00F0FF;font:600 10px "Share Tech Mono",monospace}',
+    '.zz-intabs{display:flex;gap:6px;padding:8px 10px;border-top:1px solid rgba(0,240,255,.15);flex-wrap:wrap}',
+    '.zz-intab{flex:none;padding:6px 10px;min-height:34px;border:1px solid rgba(94,113,134,.35);border-radius:3px;background:transparent;color:#9FB6C9;font:600 11px "Noto Sans SC",system-ui;cursor:pointer}',
+    '.zz-intab.on{color:#FF2E88;border-color:rgba(255,46,136,.6);background:rgba(255,46,136,.07)}',
+    /* 预览卡位于 App 容器内：浅色模式经反色滤镜呈现，故其内部（含 SVG 地图）
+       固定使用深色值，交由滤镜映射为日间色，避免变量被二次反转 */
+    'html.zz-light .zz-inline{--zz-cyan:#00F0FF;--zz-mag:#FF2E88;--zz-line:rgba(0,240,255,.3);',
+    '--zzm-bg:#0A1220;--zzm-water:#0B2438;--zzm-watername:#3E7A96;--zzm-park:#0E2A22;--zzm-parkname:#3E8A6A;',
+    '--zzm-roadc:#060B14;--zzm-road:#24384F;--zzm-roadname:#8FB0C6;--zzm-rail:#6E82A0;--zzm-text:#E8F2FA;',
+    '--zzm-halo:#050A12;--zzm-note:#7C93A8;--zzm-grid:rgba(0,240,255,.05)}',
     /* SVG 图层 */
     '.zzm-water{fill:var(--zzm-water)}.zzm-watername{fill:var(--zzm-watername)}',
     '.zzm-park{fill:var(--zzm-park)}.zzm-parkname{fill:var(--zzm-parkname)}',
@@ -1572,11 +1591,11 @@ __ZZ_MAPS.push({
     });
   }
 
-  function open() {
+  function open(day, mi) {
     if (!ov) buildOverlay();
     ov.classList.add('on');
     try { history.pushState({ zz: 1 }, ''); state.pushed = true; } catch (e) { state.pushed = false; }
-    setDay(currentAppDay(), 0);
+    setDay(day >= 1 && day <= 13 ? day : currentAppDay(), mi || 0);
   }
   function hide() { if (ov) ov.classList.remove('on'); }
   function close() {
@@ -1584,16 +1603,81 @@ __ZZ_MAPS.push({
     hide();
   }
 
+  /* ---------------- 行程页内嵌预览（与「精简行程」路线卡联动） ---------------- */
+  var inlineBox = null, inlineState = { day: 0, mi: 0 };
+
+  function findRouteCard() {
+    var divs = document.getElementsByTagName('div');
+    for (var i = 0; i < divs.length; i++) {
+      var el = divs[i];
+      var t = (el.textContent || '').trim();
+      if (t.length > 24) continue;
+      var mm = /^ROUTE\s*\/\/\s*D(\d+)$/.exec(t);
+      if (!mm) continue;
+      var card = el;
+      while (card && card !== document.body) {
+        var st = card.getAttribute('style') || '';
+        if (st.indexOf('rgba(0,240,255,.22)') >= 0 || st.indexOf('rgba(0, 240, 255, 0.22)') >= 0) break;
+        card = card.parentElement;
+      }
+      if (!card || card === document.body) {
+        card = el.parentElement && el.parentElement.parentElement; /* 标签→头行→卡片 兜底 */
+      }
+      if (card) return { day: +mm[1], card: card };
+    }
+    return null;
+  }
+
+  function renderInline(day) {
+    var list = mapsOf(day), m = list[inlineState.mi] || list[0];
+    if (!m) { inlineBox.innerHTML = ''; return; }
+    var h = '<div class="zz-inhead"><b>MAP// 本日离线地图</b><span>' + list.length + ' 张 · 点击全屏缩放</span></div>';
+    h += '<div class="zz-inthumb">' + renderMap(m) + '<span class="zz-inzoom">⛶ 全屏</span></div>';
+    if (list.length > 1) {
+      h += '<div class="zz-intabs">';
+      list.forEach(function (mm, i) {
+        h += '<button class="zz-intab' + (i === inlineState.mi ? ' on' : '') + '" data-i="' + i + '">' + (i + 1) + ' · ' + esc(mm.t) + '</button>';
+      });
+      h += '</div>';
+    }
+    inlineBox.innerHTML = h;
+    var tabs = inlineBox.querySelectorAll('.zz-intab');
+    for (var i = 0; i < tabs.length; i++) {
+      tabs[i].addEventListener('click', function (e) {
+        e.stopPropagation();
+        inlineState.mi = +this.getAttribute('data-i');
+        renderInline(day);
+      });
+    }
+  }
+
+  function ensureInline() {
+    var r = findRouteCard();
+    if (!r) {
+      if (inlineBox && inlineBox.parentElement) inlineBox.parentElement.removeChild(inlineBox);
+      return;
+    }
+    var ok = inlineBox && inlineBox.isConnected &&
+      inlineBox.previousElementSibling === r.card && inlineState.day === r.day;
+    if (ok) return;
+    if (inlineState.day !== r.day) inlineState = { day: r.day, mi: 0 };
+    if (!inlineBox) {
+      inlineBox = document.createElement('div');
+      inlineBox.className = 'zz-inline';
+      inlineBox.addEventListener('click', function (e) {
+        if (e.target.closest && e.target.closest('.zz-intab')) return;
+        open(inlineState.day, inlineState.mi);
+      });
+    }
+    renderInline(r.day);
+    r.card.insertAdjacentElement('afterend', inlineBox);
+  }
+
   /* ---------------- 挂载 ---------------- */
   function mountFabs() {
     if (document.querySelector('.zz-fabs')) return;
     var box = document.createElement('div');
     box.className = 'zz-fabs';
-    var bm = document.createElement('button');
-    bm.className = 'zz-fab zz-fab-map';
-    bm.setAttribute('aria-label', '每日地图');
-    bm.innerHTML = ICON_MAP + '<span class="zz-fabtag">MAP</span>';
-    bm.addEventListener('click', open);
     var bt = document.createElement('button');
     bt.className = 'zz-fab zz-fab-theme';
     bt.setAttribute('aria-label', '深浅色切换');
@@ -1601,7 +1685,7 @@ __ZZ_MAPS.push({
     bt.addEventListener('click', function () {
       applyTheme(getTheme() === 'light' ? 'dark' : 'light');
     });
-    box.appendChild(bm); box.appendChild(bt);
+    box.appendChild(bt);
     document.body.appendChild(box);
   }
 
@@ -1611,16 +1695,27 @@ __ZZ_MAPS.push({
     st.textContent = CSS;
     document.head.appendChild(st);
     applyTheme(getTheme());
-    /* App 解包完成后再挂 UI；之后每1.2s守护（重渲染丢失则补挂） */
-    var guard = setInterval(function () {
-      if (!document.getElementById('zz-addon-style')) document.head.appendChild(st);
-      var ready = tagAppHolder();
-      if (ready) {
-        mountFabs();
-        if (!document.body.contains(ov) && ov) document.body.appendChild(ov);
-      }
-    }, 1200);
-    tagAppHolder(); mountFabs();
+    /* App 解包/重渲染后自动补挂：MutationObserver 快速响应 + 周期兜底 */
+    var moT = null, moBusy = false;
+    function sync() {
+      if (moBusy) return;
+      moBusy = true;
+      try {
+        if (!document.getElementById('zz-addon-style')) document.head.appendChild(st);
+        if (tagAppHolder()) {
+          mountFabs();
+          ensureInline();
+          if (ov && !document.body.contains(ov)) document.body.appendChild(ov);
+        }
+      } finally { moBusy = false; }
+    }
+    try {
+      new MutationObserver(function () {
+        clearTimeout(moT); moT = setTimeout(sync, 200);
+      }).observe(document.body, { childList: true, subtree: true });
+    } catch (e) {}
+    setInterval(sync, 1500);
+    sync();
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
