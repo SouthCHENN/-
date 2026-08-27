@@ -603,7 +603,7 @@
     var blk = document.createElement('div');
     blk.className = 'zz-wc' + (text.indexOf('⚠️') >= 0 ? ' warn' : '');
     blk.setAttribute('data-key', key);
-    var h = '<b>🚻 WC// 如厕点位</b>';
+    var h = '<b>🚻 WC// 厕所位置</b>';
     text.split('\n').forEach(function (ln) { h += '<div>' + esc(ln) + '</div>'; });
     blk.innerHTML = h;
     row.parentElement.insertBefore(blk, row);
