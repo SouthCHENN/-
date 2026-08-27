@@ -18,6 +18,7 @@ import android.os.Message;
 import android.view.View;
 import android.view.Window;
 import android.webkit.JavascriptInterface;
+import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -55,7 +56,10 @@ public class MainActivity extends Activity {
             "try{window.open=function(u){if(u){window.ZouzheBridge.openUrl(String(u));}return null;};}catch(e){}" +
             "})();";
 
+    private static final int REQ_FILE_CHOOSER = 7001;
+
     private WebView webView;
+    private ValueCallback<Uri[]> fileChooserCb;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -101,8 +105,25 @@ public class MainActivity extends Activity {
             }
         });
 
-        // 兜底：JS 桥注入前/失效时 window.open 落到这里，取出目标 URL 转外部打开
+        // 兜底：JS 桥注入前/失效时 window.open 落到这里，取出目标 URL 转外部打开；
+        // onShowFileChooser 支撑页面 <input type="file">（票根上传拉起相册/文件选择器）
         webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback,
+                                             FileChooserParams params) {
+                if (fileChooserCb != null) fileChooserCb.onReceiveValue(null);
+                fileChooserCb = callback;
+                try {
+                    startActivityForResult(params.createIntent(), REQ_FILE_CHOOSER);
+                } catch (ActivityNotFoundException e) {
+                    fileChooserCb = null;
+                    Toast.makeText(MainActivity.this, getString(R.string.no_app_found),
+                            Toast.LENGTH_SHORT).show();
+                    return false;
+                }
+                return true;
+            }
+
             @Override
             public boolean onCreateWindow(WebView view, boolean isDialog,
                                           boolean isUserGesture, Message resultMsg) {
@@ -241,6 +262,19 @@ public class MainActivity extends Activity {
             }
         }
         return false;
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQ_FILE_CHOOSER) {
+            if (fileChooserCb != null) {
+                fileChooserCb.onReceiveValue(
+                        WebChromeClient.FileChooserParams.parseResult(resultCode, data));
+                fileChooserCb = null;
+            }
+            return;
+        }
+        super.onActivityResult(requestCode, resultCode, data);
     }
 
     @Override
