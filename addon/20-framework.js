@@ -73,6 +73,12 @@
     '.zz-inthumb{position:relative;height:184px;background:#0A1220;border:1px solid rgba(0,240,255,.18);border-radius:3px;overflow:hidden}',
     '.zz-inthumb svg{width:100%;height:100%;display:block}',
     '.zz-inzoom{position:absolute;right:8px;bottom:8px;padding:4px 9px;border:1px solid rgba(0,240,255,.4);border-radius:3px;background:rgba(10,15,28,.78);color:#00F0FF;font:600 10px "Share Tech Mono",monospace}',
+    /* 节点详情卡内的如厕信息块（与凭证块同语言的青色浅底；含⚠️时品红强调） */
+    '.zz-wc{margin:10px 0 2px;padding:8px 11px 9px;border:1px solid rgba(0,240,255,.22);border-radius:3px;background:rgba(0,240,255,.04)}',
+    '.zz-wc.warn{border-color:rgba(255,46,136,.4);background:rgba(255,46,136,.06)}',
+    '.zz-wc b{display:block;font:600 10px "Share Tech Mono",monospace;color:#00F0FF;letter-spacing:.5px;margin-bottom:4px}',
+    '.zz-wc.warn b{color:#FF2E88}',
+    '.zz-wc div{font:12.5px/1.6 "Noto Sans SC",system-ui;color:#D8E6F0}',
     /* 路线图上标示当前所看行程段：站名青色加粗+细下划线（无背景/发光，不出界不叠加） */
     '.zz-onseg>div:nth-of-type(2){color:#00F0FF!important;font-weight:700!important}',
     '.zz-onseg::after{content:"";width:24px;height:2px;background:#00F0FF;margin-top:3px;border-radius:1px}',
@@ -557,6 +563,52 @@
     }
   }
 
+  /* ---------------- 节点详情卡 · 如厕信息注入 ---------------- */
+  function ensureWc() {
+    var WC = window.__ZZ_WC || {};
+    /* 找节点详情 bottom sheet（圆角 10px 10px 0 0 的底部容器） */
+    var sheet = null, divs = document.getElementsByTagName('div');
+    for (var i = 0; i < divs.length; i++) {
+      var st = divs[i].getAttribute('style') || '';
+      if (st.indexOf('10px 10px 0') >= 0 && st.indexOf('bottom') >= 0) { sheet = divs[i]; break; }
+    }
+    if (!sheet) return;
+    /* 上下文行取天数、17px/900 行取节点标题 */
+    var dm = /D(\d+)\s*·/.exec(sheet.textContent || '');
+    var title = '';
+    var inner = sheet.getElementsByTagName('div');
+    for (var j = 0; j < inner.length; j++) {
+      var s2 = inner[j].getAttribute('style') || '';
+      if (s2.indexOf('17px') >= 0) { title = (inner[j].textContent || '').trim(); break; }
+    }
+    var old = sheet.querySelector('.zz-wc');
+    if (!dm || !title) { if (old) old.parentElement.removeChild(old); return; }
+    var day = +dm[1], rules = WC[day] || [], text = null;
+    for (var r = 0; r < rules.length; r++) {
+      var kws = rules[r][0], hit = false;
+      for (var k = 0; k < kws.length; k++) if (title.indexOf(kws[k]) >= 0) { hit = true; break; }
+      if (hit) { text = rules[r][1]; break; }
+    }
+    var key = day + '|' + title;
+    if (old && old.getAttribute('data-key') === key) return;
+    if (old) old.parentElement.removeChild(old);
+    if (text == null) return;
+    /* 插到「复制地址」按钮行之前 */
+    var btn = null, btns = sheet.getElementsByTagName('button');
+    for (var b2 = 0; b2 < btns.length; b2++) {
+      if ((btns[b2].textContent || '').trim() === '复制地址') { btn = btns[b2]; break; }
+    }
+    if (!btn || !btn.parentElement || !btn.parentElement.parentElement) return;
+    var row = btn.parentElement;
+    var blk = document.createElement('div');
+    blk.className = 'zz-wc' + (text.indexOf('⚠️') >= 0 ? ' warn' : '');
+    blk.setAttribute('data-key', key);
+    var h = '<b>🚻 WC// 如厕点位</b>';
+    text.split('\n').forEach(function (ln) { h += '<div>' + esc(ln) + '</div>'; });
+    blk.innerHTML = h;
+    row.parentElement.insertBefore(blk, row);
+  }
+
   /* 隐藏头图上方的预出发日期提示条（旅行未开始 · 正在看 Dn 计划 · T-N DAYS），
      腾出首屏空间保证 ROUTE 卡整体可见 */
   function hideBanner() {
@@ -637,6 +689,7 @@
           mountThemeBtn();
           hideBanner();
           ensureInline();
+          ensureWc();
           if (ov && !document.body.contains(ov)) document.body.appendChild(ov);
         }
       } finally { moBusy = false; }

@@ -398,6 +398,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 
 
+
 <!--ZZ_ADDON_BEGIN-->
 <script id="zz-addon">
 /* ============================================================
@@ -1195,6 +1196,96 @@ __ZZ_MAPS.push({
 
 ;
 /* ============================================================
+ * 走着 · 行程点如厕信息（来源：意大利行程·如厕作战手册）
+ * 结构：{ day: [ [ [标题关键词...], '文案(\n 分行)' ], ... ] }
+ * 匹配：节点标题包含任一关键词即命中，按数组顺序取第一条
+ * ============================================================ */
+window.__ZZ_WC = {
+  1: [
+    [['机场快线', '特米尼'], '特米尼站内付费厕所 ≈1欧 ★★★★（跟 WC 标识）\n全国最稳定的兜底；此后以酒店房间为主'],
+  ],
+  2: [
+    [['登顶'], '⚠️ 登顶前务必先上——顶上没有\n广场右侧柱廊免费公厕 ★★★★（梵蒂冈罕见福利）'],
+    [['安检', '广场'], '广场右侧柱廊有免费公厕 ★★★★\n排队安检前可先解决'],
+    [['博物馆'], '馆内多处 免费 ★★★★★（全意最干净一档）\n铁律：进馆先上、出馆再上'],
+    [['Bonci'], '用餐时顺带解决（免费）'],
+    [['RIONE'], '晚餐时解决（免费）；饭后回程 12 分无补给点'],
+  ],
+  3: [
+    [['圣依纳爵'], '堂内无厕所\n周边 Bar 规则：一杯咖啡 ≈1.2欧 换厕所（"posso usare il bagno?"）'],
+    [['万神殿'], '万神殿无厕所\n周边 Bar 密集 ★★★：消费即可用（"posso usare il bagno?"）'],
+    [['博尔盖塞'], '馆内寄包层 免费 ★★★★★\n进馆先上；严格 2 小时清场，出馆前再上'],
+    [['平丘'], '人民广场边 Bar（一杯咖啡）★★★'],
+    [['特莱维'], '喷泉无厕所\n周边 Bar 或回程后酒店解决'],
+  ],
+  4: [
+    [['真理之口'], '对面 Bar 可用（消费 ≈1.2欧）★★★'],
+    [['古罗马', '帕拉丁'], '园区内免费 ★★★：入口处、山上各有\n⚠️ 16:00 进斗兽场前在园区解决——斗兽场傍晚排队'],
+    [['斗兽场'], '场内有 免费 ★★★★（人多时段 ★★★）\n傍晚排队，尽量在广场园区先解决'],
+    [['Da Felice', '特斯塔乔'], '餐厅用餐时解决（免费）'],
+  ],
+  5: [
+    [['红箭'], '高铁车上厕所 免费 ★★★★——移动的干净厕所'],
+    [['环维苏威'], '⚠️ 普通车上基本无厕所（当它不存在）\n上车前在车站解决'],
+    [['海门', '进园'], '⚠️ 全程最缺的一天：入口处进园必上（票内）\n园内仅：广场西北角 / 圆形剧场附近 ★★\n记住方位、带足纸'],
+    [['出口', '出园', '回车站'], '庞贝遗址站旁付费 0.5–1欧 ★★★\n返程小火车上无厕所'],
+    [['O’Parrucchiano', 'Parrucchiano', '晚餐'], '餐厅用餐时解决（免费）'],
+  ],
+  6: [
+    [['渡轮'], '上船前解决；渡轮上有但晃 ★★'],
+    [['蓝洞'], '⚠️ 排队前在大码头付费公厕解决（≈1欧 ★★★）\n快艇+小划艇 2 小时没有回头路'],
+    [['索拉罗'], '山顶咖啡馆消费顺带（咖啡 ≈1.5欧）★★★'],
+    [['Paolino'], '店内 ★★★★★，用餐时解决'],
+    [['奥古斯都', '卡普里镇'], '小广场周边 Bar（威尼斯外价格正常）'],
+  ],
+  7: [
+    [['浴场', '跳水'], '⚠️ 野生海角零设施\n出门前民宿解决；控制上午饮水量'],
+    [['Cantinaccia'], '用餐时解决（免费）'],
+    [['Da Emilia', '大海滩'], '餐厅用餐时解决（免费）'],
+  ],
+  8: [
+    [['环维苏威', '普通'], '⚠️ 车上无厕所\n出发前民宿解决'],
+    [['存 2 箱', '存2箱', '寄存'], '那不勒斯中央车站付费 ≈1欧 ★★★★'],
+    [['Michele'], '店内小但有 ★★（免费）'],
+    [['Italo'], '车上免费 ★★★★'],
+    [['Buca'], '餐厅用餐时解决（免费）'],
+  ],
+  9: [
+    [['学院'], '馆内 免费 ★★★★\n进馆先上（馆小 75 分，出馆再上）'],
+    [['乌菲兹'], '馆内多层都有 免费 ★★★★★（公认市中心最干净）\n⚠️ 出馆前必上——之后 30 分爬山+日落，山上选项差'],
+    [['Mario'], '中央市场二楼 免费 ★★★'],
+    [['米开朗基罗'], '广场公厕/周边 Bar ★★–★★★（选项差，最好上山前解决）'],
+    [['Latini'], '餐厅用餐时解决（免费）'],
+  ],
+  10: [
+    [['穹顶'], '⚠️ 穹顶无厕所且 463 级台阶\n爬前少喝水；下来后中央市场解决'],
+    [['Nerbone'], '中央市场内 免费 ★★★（午餐顺带）'],
+    [['红箭'], '高铁车上 免费 ★★★★'],
+    [['即存', '圣卢西亚', '存 2 个'], '圣卢西亚站内付费 1欧 ★★★★\n比城内市政公厕（1.5欧）便宜——出发前解决'],
+    [['酒馆', 'cicchetti'], '威尼斯策略：用餐消费时解决\n站着吃的小馆也适用 Bar 规则'],
+  ],
+  11: [
+    [['花神'], '场景消费时解决（30欧「门票」的隐藏内容）\n镜厅走廊洗手间本身是历史内饰 ★★★★'],
+    [['Portego'], '午餐时解决（威尼斯策略：两顿餐全解决）'],
+    [['大殿'], '⚠️ 圣马可大殿内无厕所\n应急：广场新行政官邸楼市政公厕 1.5欧（备硬币）★★★★'],
+    [['里亚托'], '桥旁市政付费公厕 1.5欧硬币 ★★★★（全意最贵）'],
+    [['取行李', '车站码头'], '圣卢西亚站内付费 1欧 ★★★★\n19:48 上车前解决，红箭车上也有'],
+    [['贡多拉'], '上船前解决（30 分航程）；圣马可周边靠消费'],
+  ],
+  12: [
+    [['大教堂'], '票内（博物馆区）★★★★\n登顶前先上'],
+    [['文艺复兴', '伴手礼'], '顶层免费 ★★★★★（打卡点）\n卫生间出来即露台——与大教堂尖顶平视的最贵机位'],
+    [['布雷拉'], '午餐时解决（免费）'],
+    [['运河', 'Brellin', '开胃酒'], '开胃酒/晚餐消费时解决（免费）'],
+  ],
+  13: [
+    [['中央车站', '退房'], '站内付费 ≈1欧 ★★★★；快线车上也有'],
+    [['马尔彭萨', '值机'], '机场内正常；安检后区域充足'],
+  ],
+};
+
+;
+/* ============================================================
  * 走着 · 插件层框架：每日地图查看器 + 深浅主题切换
  * 独立于 App 运行时：自己的浮动按钮/overlay/状态，不侵入主流程
  * ============================================================ */
@@ -1269,6 +1360,12 @@ __ZZ_MAPS.push({
     '.zz-inthumb{position:relative;height:184px;background:#0A1220;border:1px solid rgba(0,240,255,.18);border-radius:3px;overflow:hidden}',
     '.zz-inthumb svg{width:100%;height:100%;display:block}',
     '.zz-inzoom{position:absolute;right:8px;bottom:8px;padding:4px 9px;border:1px solid rgba(0,240,255,.4);border-radius:3px;background:rgba(10,15,28,.78);color:#00F0FF;font:600 10px "Share Tech Mono",monospace}',
+    /* 节点详情卡内的如厕信息块（与凭证块同语言的青色浅底；含⚠️时品红强调） */
+    '.zz-wc{margin:10px 0 2px;padding:8px 11px 9px;border:1px solid rgba(0,240,255,.22);border-radius:3px;background:rgba(0,240,255,.04)}',
+    '.zz-wc.warn{border-color:rgba(255,46,136,.4);background:rgba(255,46,136,.06)}',
+    '.zz-wc b{display:block;font:600 10px "Share Tech Mono",monospace;color:#00F0FF;letter-spacing:.5px;margin-bottom:4px}',
+    '.zz-wc.warn b{color:#FF2E88}',
+    '.zz-wc div{font:12.5px/1.6 "Noto Sans SC",system-ui;color:#D8E6F0}',
     /* 路线图上标示当前所看行程段：站名青色加粗+细下划线（无背景/发光，不出界不叠加） */
     '.zz-onseg>div:nth-of-type(2){color:#00F0FF!important;font-weight:700!important}',
     '.zz-onseg::after{content:"";width:24px;height:2px;background:#00F0FF;margin-top:3px;border-radius:1px}',
@@ -1753,6 +1850,52 @@ __ZZ_MAPS.push({
     }
   }
 
+  /* ---------------- 节点详情卡 · 如厕信息注入 ---------------- */
+  function ensureWc() {
+    var WC = window.__ZZ_WC || {};
+    /* 找节点详情 bottom sheet（圆角 10px 10px 0 0 的底部容器） */
+    var sheet = null, divs = document.getElementsByTagName('div');
+    for (var i = 0; i < divs.length; i++) {
+      var st = divs[i].getAttribute('style') || '';
+      if (st.indexOf('10px 10px 0') >= 0 && st.indexOf('bottom') >= 0) { sheet = divs[i]; break; }
+    }
+    if (!sheet) return;
+    /* 上下文行取天数、17px/900 行取节点标题 */
+    var dm = /D(\d+)\s*·/.exec(sheet.textContent || '');
+    var title = '';
+    var inner = sheet.getElementsByTagName('div');
+    for (var j = 0; j < inner.length; j++) {
+      var s2 = inner[j].getAttribute('style') || '';
+      if (s2.indexOf('17px') >= 0) { title = (inner[j].textContent || '').trim(); break; }
+    }
+    var old = sheet.querySelector('.zz-wc');
+    if (!dm || !title) { if (old) old.parentElement.removeChild(old); return; }
+    var day = +dm[1], rules = WC[day] || [], text = null;
+    for (var r = 0; r < rules.length; r++) {
+      var kws = rules[r][0], hit = false;
+      for (var k = 0; k < kws.length; k++) if (title.indexOf(kws[k]) >= 0) { hit = true; break; }
+      if (hit) { text = rules[r][1]; break; }
+    }
+    var key = day + '|' + title;
+    if (old && old.getAttribute('data-key') === key) return;
+    if (old) old.parentElement.removeChild(old);
+    if (text == null) return;
+    /* 插到「复制地址」按钮行之前 */
+    var btn = null, btns = sheet.getElementsByTagName('button');
+    for (var b2 = 0; b2 < btns.length; b2++) {
+      if ((btns[b2].textContent || '').trim() === '复制地址') { btn = btns[b2]; break; }
+    }
+    if (!btn || !btn.parentElement || !btn.parentElement.parentElement) return;
+    var row = btn.parentElement;
+    var blk = document.createElement('div');
+    blk.className = 'zz-wc' + (text.indexOf('⚠️') >= 0 ? ' warn' : '');
+    blk.setAttribute('data-key', key);
+    var h = '<b>🚻 WC// 如厕点位</b>';
+    text.split('\n').forEach(function (ln) { h += '<div>' + esc(ln) + '</div>'; });
+    blk.innerHTML = h;
+    row.parentElement.insertBefore(blk, row);
+  }
+
   /* 隐藏头图上方的预出发日期提示条（旅行未开始 · 正在看 Dn 计划 · T-N DAYS），
      腾出首屏空间保证 ROUTE 卡整体可见 */
   function hideBanner() {
@@ -1833,6 +1976,7 @@ __ZZ_MAPS.push({
           mountThemeBtn();
           hideBanner();
           ensureInline();
+          ensureWc();
           if (ov && !document.body.contains(ov)) document.body.appendChild(ov);
         }
       } finally { moBusy = false; }
