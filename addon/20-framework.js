@@ -75,6 +75,9 @@
     '.zz-inthumb{position:relative;border:1px solid rgba(0,240,255,.18);border-radius:3px;overflow:hidden}',
     '.zz-inthumb svg{width:100%;height:auto;display:block}',
     '.zz-inzoom{position:absolute;right:8px;bottom:8px;padding:4px 9px;border:1px solid rgba(0,240,255,.4);border-radius:3px;background:rgba(10,15,28,.78);color:#00F0FF;font:600 10px "Share Tech Mono",monospace}',
+    /* 路线图上标示当前所看行程段：该段站点青色下划线+浅底微光 */
+    '.zz-onseg{background:rgba(0,240,255,.07);border-radius:3px;box-shadow:0 0 10px rgba(0,240,255,.18)}',
+    '.zz-onseg::after{content:"";width:26px;height:2px;background:#00F0FF;margin-top:3px;border-radius:1px;box-shadow:0 0 8px rgba(0,240,255,.8)}',
     /* 预览卡位于 App 容器内：浅色模式经反色滤镜呈现，故其内部（含 SVG 地图）
        固定使用深色值，交由滤镜映射为日间色，避免变量被二次反转 */
     'html.zz-light .zz-inline{--zz-cyan:#00F0FF;--zz-mag:#FF2E88;--zz-line:rgba(0,240,255,.3);',
@@ -494,6 +497,32 @@
     var h = '<div class="zz-inhead"><b>MAP// ' + esc(m.t) + '</b><span>' + hint + '</span></div>';
     h += '<div class="zz-inthumb">' + renderMap(m) + '<span class="zz-inzoom">⛶ 全屏</span></div>';
     inlineBox.innerHTML = h;
+    if (inlineBox.parentElement) markStops(inlineBox.parentElement);
+  }
+
+  /* 高亮路线图上属于当前子图的站点（站点容器 = 圆点+站名+时刻，≥2个子元素）。
+     单图日不标——不存在「看哪段」的歧义 */
+  function markStops(card) {
+    var rules = STOP_MI[inlineState.day];
+    var divs = card.querySelectorAll('div');
+    for (var i = 0; i < divs.length; i++) {
+      var el = divs[i];
+      if (el.closest && el.closest('.zz-inline')) continue;
+      if (el.childElementCount < 2) continue;
+      var text = (el.textContent || '').replace(/\s+/g, '');
+      var m = text.length <= 16 && /^(.+?)\d{1,2}:\d{2}$/.exec(text);
+      if (!m) { if (el.classList) el.classList.remove('zz-onseg'); continue; }
+      var on = false;
+      if (rules) {
+        var label = m[1], hit = null, hitLen = -1;
+        for (var k in rules) {
+          var kk = k.replace(/\s+/g, '');
+          if (label.indexOf(kk) === 0 && kk.length > hitLen) { hit = k; hitLen = kk.length; }
+        }
+        on = hit != null && rules[hit] === inlineState.mi;
+      }
+      el.classList.toggle('zz-onseg', on);
+    }
   }
 
   function ensureInline() {
@@ -503,6 +532,7 @@
       return;
     }
     rewriteHint(r);
+    markStops(r.card);
     var ok = inlineBox && inlineBox.isConnected &&
       inlineBox.parentElement === r.card &&
       inlineBox.previousElementSibling === r.head && inlineState.day === r.day;
