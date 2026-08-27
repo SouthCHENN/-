@@ -110,6 +110,12 @@
     '.zz-tkpick-card i{display:block;font:400 11px "Noto Sans SC",system-ui;color:#5E7186;font-style:normal;margin-bottom:8px}',
     '.zz-tkpick-list{max-height:46vh;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:10px}',
     '.zz-tkpick-item{text-align:left;min-height:42px;padding:8px 12px;border:1px solid rgba(94,113,134,.35);border-radius:3px;background:rgba(255,255,255,.02);color:#D8E6F0;font:13px "Noto Sans SC",system-ui;cursor:pointer}',
+    /* 删除确认弹层：标题/副标题用正文字体；取消左·删除右，等宽撑满 */
+    '.zz-tkcfm .zz-tkpick-card b{font:700 15px "Noto Sans SC",system-ui;color:#FFFFFF;letter-spacing:0;margin-bottom:3px}',
+    '.zz-tkcfm .zz-tkpick-card i{font:400 12px "Noto Sans SC",system-ui;color:#9FB6C9;margin-bottom:0}',
+    '.zz-tkcfm-row{display:flex;gap:10px;margin-top:14px}',
+    '.zz-tkcfm-row button{flex:1;min-width:0;min-height:44px;border-radius:3px;font:600 14px "Noto Sans SC",system-ui;cursor:pointer}',
+    '.zz-tkcfm-row .zz-tkcfm-yes{background:rgba(255,46,136,.12)}',
     '.zz-toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%);z-index:9700;padding:9px 16px;border-radius:4px;',
     'background:rgba(13,20,36,.92);border:1px solid rgba(0,240,255,.4);color:#7FDBE8;font:12.5px "Noto Sans SC",system-ui}',
     /* 路线图上标示当前所看行程段：站名青色加粗+细下划线（无背景/发光，不出界不叠加） */
@@ -839,9 +845,9 @@
     v.className = 'zz-tkcfm';
     v.innerHTML = '<div class="zz-tkview-scrim"></div><div class="zz-tkpick-card">' +
       '<b>删除这张票根？</b><i>删除后不可恢复</i>' +
-      '<div class="zz-tkview-row" style="margin-top:6px">' +
-      '<button class="zz-tkview-del zz-tkcfm-yes" data-id="' + id + '">删除</button>' +
-      '<button class="zz-tkview-x zz-tkcfm-no">取消</button></div></div>';
+      '<div class="zz-tkcfm-row">' +
+      '<button class="zz-tkview-x zz-tkcfm-no">取消</button>' +
+      '<button class="zz-tkview-del zz-tkcfm-yes" data-id="' + id + '">删除</button></div></div>';
     document.body.appendChild(v);
   }
   function tkOverlayClose(sel) {

@@ -4,18 +4,18 @@
 
 ## 安装包
 
-**`dist/zouzhe-v1.2.0.apk`**（约 4.9 MB）
+**`dist/zouzhe-v1.2.1.apk`**（约 4.9 MB）
 
 | 项 | 值 |
 |---|---|
 | 包名 | `com.zouzhe.app` |
-| 版本 | 1.2.0 (versionCode 13) |
+| 版本 | 1.2.1 (versionCode 14) |
 | minSdk / targetSdk | 23 (Android 6.0) / 34 (Android 14) |
 | 签名 | v1 + v2 + v3 全方案（自签名，Android 6.x 亦可安装） |
 | 方向/主题 | 竖屏锁定；深/浅双主题可切换（含状态栏/导航栏同步） |
 
 ### 小米 15 Pro 安装步骤
-1. 把 `dist/zouzhe-v1.2.0.apk` 传到手机（微信文件传输助手 / USB / 网盘均可）。
+1. 把 `dist/zouzhe-v1.2.1.apk` 传到手机（微信文件传输助手 / USB / 网盘均可）。
 2. 点击 APK → 系统提示「未知来源应用」→ 允许当前来源安装。
 3. HyperOS 若弹「纯净模式」拦截，选择 **仍要安装**（或临时关闭纯净模式：设置 → 隐私与安全 → 纯净模式）。
 4. 安装后打开即用；**飞行模式下全部行程数据可用**，「唤起在线地图」直接拉起本机高德/百度等地图 App 搜索该地址。
@@ -52,7 +52,7 @@ design/                                   # 设计交付物（源文件/运行�
 scripts/                                  # 图标渲染（chromium headless + SVG）
 build.sh                                  # 构建脚本
 keystore/zouzhe.keystore                  # 签名密钥库（口令 zouzhe2026，仅自用侧载）
-dist/zouzhe-v1.2.0.apk                    # 交付安装包
+dist/zouzhe-v1.2.1.apk                    # 交付安装包
 ```
 
 ## 从源码构建
@@ -60,7 +60,7 @@ dist/zouzhe-v1.2.0.apk                    # 交付安装包
 
 ```bash
 apt-get install -y aapt apksigner zipalign dalvik-exchange android-sdk-platform-23 default-jdk
-./build.sh          # 产物: dist/zouzhe-v1.2.0.apk
+./build.sh          # 产物: dist/zouzhe-v1.2.1.apk
 ```
 
 管线：`aapt`(R.java) → `javac`(target 8) → `dx` → `aapt package`（resources.arsc 不压缩，满足 targetSdk 30+ 安装要求）→ `zipalign` → `apksigner`(v1+v2 签名，Android 7+ 实际启用 v2/v3)。
