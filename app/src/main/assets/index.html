@@ -400,6 +400,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 
 
+
 <!--ZZ_ADDON_BEGIN-->
 <script id="zz-addon">
 /* ============================================================
@@ -1361,12 +1362,30 @@ window.__ZZ_WC = {
     '.zz-inthumb{position:relative;height:184px;background:#0A1220;border:1px solid rgba(0,240,255,.18);border-radius:3px;overflow:hidden}',
     '.zz-inthumb svg{width:100%;height:100%;display:block}',
     '.zz-inzoom{position:absolute;right:8px;bottom:8px;padding:4px 9px;border:1px solid rgba(0,240,255,.4);border-radius:3px;background:rgba(10,15,28,.78);color:#00F0FF;font:600 10px "Share Tech Mono",monospace}',
-    /* 节点详情卡内的如厕信息块（与凭证块同语言的青色浅底；含⚠️时品红强调） */
-    '.zz-wc{margin:10px 0 2px;padding:8px 11px 9px;border:1px solid rgba(0,240,255,.22);border-radius:3px;background:rgba(0,240,255,.04)}',
-    '.zz-wc.warn{border-color:rgba(255,46,136,.4);background:rgba(255,46,136,.06)}',
-    '.zz-wc b{display:block;font:600 10px "Share Tech Mono",monospace;color:#00F0FF;letter-spacing:.5px;margin-bottom:4px}',
-    '.zz-wc.warn b{color:#FF2E88}',
-    '.zz-wc div{font:12.5px/1.6 "Noto Sans SC",system-ui;color:#D8E6F0}',
+    /* —— 厕所位置：与节点信息/按钮区分离的独立区块（三种交互方案） —— */
+    /* A/B：卡尾独立分区（虚线分隔线明确与上方节点操作区切开） */
+    '.zz-wcsec{margin:12px -2px 0;padding:10px 2px 2px;border-top:1px dashed rgba(0,240,255,.3)}',
+    '.zz-wch{display:flex;align-items:center;gap:8px;min-height:36px;cursor:pointer;-webkit-tap-highlight-color:transparent;',
+    'font:600 11px "Share Tech Mono",monospace;color:#00F0FF;letter-spacing:.5px}',
+    '.zz-wcsec.warn .zz-wch{color:#FF2E88}',
+    '.zz-wch .zz-wcarw{margin-left:auto;font-size:13px;opacity:.8}',
+    '.zz-wcb{padding:2px 1px 4px;font:12.5px/1.7 "Noto Sans SC",system-ui;color:#D8E6F0}',
+    /* C：标题旁徽章 + 独立弹层 */
+    '.zz-wcchip{display:inline-flex;align-items:center;gap:4px;margin:6px 0 0;padding:4px 10px;min-height:30px;',
+    'border:1px solid rgba(0,240,255,.35);border-radius:3px;background:rgba(0,240,255,.05);',
+    'font:600 10.5px "Share Tech Mono",monospace;color:#00F0FF;cursor:pointer;-webkit-tap-highlight-color:transparent}',
+    '.zz-wcchip.warn{border-color:rgba(255,46,136,.5);background:rgba(255,46,136,.07);color:#FF2E88}',
+    '.zz-wcpop{position:fixed;inset:0;z-index:9500}',
+    '.zz-wcpop-scrim{position:absolute;inset:0;background:rgba(2,4,10,.6)}',
+    '.zz-wcpop-card{position:absolute;left:16px;right:16px;bottom:calc(90px + env(safe-area-inset-bottom));max-width:480px;margin:0 auto;',
+    'background:#0D1424;border:1px solid rgba(0,240,255,.4);border-radius:6px;padding:14px 16px;box-shadow:0 0 30px rgba(0,240,255,.15)}',
+    '.zz-wcpop-card.warn{border-color:rgba(255,46,136,.5);box-shadow:0 0 30px rgba(255,46,136,.15)}',
+    '.zz-wcpop-card b{display:block;font:600 11px "Share Tech Mono",monospace;color:#00F0FF;letter-spacing:.5px;margin-bottom:2px}',
+    '.zz-wcpop-card.warn b{color:#FF2E88}',
+    '.zz-wcpop-card i{display:block;font:italic 400 11px "Noto Sans SC",system-ui;color:#5E7186;margin-bottom:7px;font-style:normal}',
+    '.zz-wcpop-card p{margin:0;font:13px/1.75 "Noto Sans SC",system-ui;color:#D8E6F0}',
+    '.zz-wcpop-x{display:block;width:100%;min-height:40px;margin-top:12px;border:1px solid rgba(0,240,255,.35);border-radius:3px;',
+    'background:transparent;color:#00F0FF;font:600 13px "Noto Sans SC",system-ui;cursor:pointer}',
     /* 路线图上标示当前所看行程段：站名青色加粗+细下划线（无背景/发光，不出界不叠加） */
     '.zz-onseg>div:nth-of-type(2){color:#00F0FF!important;font-weight:700!important}',
     '.zz-onseg::after{content:"";width:24px;height:2px;background:#00F0FF;margin-top:3px;border-radius:1px}',
@@ -1851,9 +1870,13 @@ window.__ZZ_WC = {
     }
   }
 
-  /* ---------------- 节点详情卡 · 如厕信息注入 ---------------- */
+  /* ---------------- 节点详情卡 · 厕所位置（独立区块，三种交互方案） ----------------
+     方案由 window.__ZZ_WC_MODE 控制：'A'=卡尾折叠抽屉 'B'=卡尾分区直展 'C'=徽章+独立弹层 */
+  var wcCur = null; /* 当前节点命中的厕所信息 {key,text,warn,title} */
+
   function ensureWc() {
     var WC = window.__ZZ_WC || {};
+    var mode = window.__ZZ_WC_MODE || 'A';
     /* 找节点详情 bottom sheet（圆角 10px 10px 0 0 的底部容器） */
     var sheet = null, divs = document.getElementsByTagName('div');
     for (var i = 0; i < divs.length; i++) {
@@ -1863,38 +1886,68 @@ window.__ZZ_WC = {
     if (!sheet) return;
     /* 上下文行取天数、17px/900 行取节点标题 */
     var dm = /D(\d+)\s*·/.exec(sheet.textContent || '');
-    var title = '';
+    var titleEl = null, title = '';
     var inner = sheet.getElementsByTagName('div');
     for (var j = 0; j < inner.length; j++) {
       var s2 = inner[j].getAttribute('style') || '';
-      if (s2.indexOf('17px') >= 0) { title = (inner[j].textContent || '').trim(); break; }
+      if (s2.indexOf('17px') >= 0) { titleEl = inner[j]; title = (inner[j].textContent || '').trim(); break; }
     }
-    var old = sheet.querySelector('.zz-wc');
-    if (!dm || !title) { if (old) old.parentElement.removeChild(old); return; }
+    function clearAll() {
+      var olds = sheet.querySelectorAll('.zz-wcsec,.zz-wcchip');
+      for (var o = 0; o < olds.length; o++) olds[o].parentElement.removeChild(olds[o]);
+    }
+    if (!dm || !title || !titleEl) { clearAll(); wcCur = null; return; }
     var day = +dm[1], rules = WC[day] || [], text = null;
     for (var r = 0; r < rules.length; r++) {
       var kws = rules[r][0], hit = false;
       for (var k = 0; k < kws.length; k++) if (title.indexOf(kws[k]) >= 0) { hit = true; break; }
       if (hit) { text = rules[r][1]; break; }
     }
-    var key = day + '|' + title;
-    if (old && old.getAttribute('data-key') === key) return;
-    if (old) old.parentElement.removeChild(old);
-    if (text == null) return;
-    /* 插到「复制地址」按钮行之前 */
-    var btn = null, btns = sheet.getElementsByTagName('button');
-    for (var b2 = 0; b2 < btns.length; b2++) {
-      if ((btns[b2].textContent || '').trim() === '复制地址') { btn = btns[b2]; break; }
+    var key = mode + '|' + day + '|' + title;
+    var exist = sheet.querySelector('.zz-wcsec,.zz-wcchip');
+    if (exist && exist.getAttribute('data-key') === key) return;
+    clearAll();
+    if (text == null) { wcCur = null; return; }
+    var warn = text.indexOf('⚠️') >= 0;
+    wcCur = { key: key, text: text, warn: warn, title: title };
+    var lines = text.split('\n').map(esc).join('<br>');
+
+    if (mode === 'C') {
+      var chip = document.createElement('div');
+      chip.className = 'zz-wcchip' + (warn ? ' warn' : '');
+      chip.setAttribute('data-key', key);
+      chip.innerHTML = '🚻 厕所位置' + (warn ? ' ⚠️' : '') + ' ›';
+      titleEl.insertAdjacentElement('afterend', chip);
+      return;
     }
-    if (!btn || !btn.parentElement || !btn.parentElement.parentElement) return;
-    var row = btn.parentElement;
-    var blk = document.createElement('div');
-    blk.className = 'zz-wc' + (text.indexOf('⚠️') >= 0 ? ' warn' : '');
-    blk.setAttribute('data-key', key);
-    var h = '<b>🚻 WC// 厕所位置</b>';
-    text.split('\n').forEach(function (ln) { h += '<div>' + esc(ln) + '</div>'; });
-    blk.innerHTML = h;
-    row.parentElement.insertBefore(blk, row);
+    var sec = document.createElement('div');
+    sec.className = 'zz-wcsec' + (warn ? ' warn' : '');
+    sec.setAttribute('data-key', key);
+    var open = mode === 'B';
+    sec.innerHTML =
+      '<div class="zz-wch">🚻 WC// 厕所位置' +
+      (mode === 'A' ? '<span class="zz-wcarw">' + (open ? '▾' : '▸') + '</span>' : '') +
+      '</div>' +
+      '<div class="zz-wcb"' + (open ? '' : ' style="display:none"') + '>' + lines + '</div>';
+    sheet.appendChild(sec); /* 卡尾：位于按钮与离线说明之后，独立分区 */
+  }
+
+  function wcPopupOpen() {
+    if (!wcCur) return;
+    wcPopupClose();
+    var pop = document.createElement('div');
+    pop.className = 'zz-wcpop';
+    pop.innerHTML =
+      '<div class="zz-wcpop-scrim"></div>' +
+      '<div class="zz-wcpop-card' + (wcCur.warn ? ' warn' : '') + '">' +
+      '<b>🚻 WC// 厕所位置</b><i>' + esc(wcCur.title) + '</i>' +
+      '<p>' + wcCur.text.split('\n').map(esc).join('<br>') + '</p>' +
+      '<button class="zz-wcpop-x">关闭</button></div>';
+    document.body.appendChild(pop);
+  }
+  function wcPopupClose() {
+    var p = document.querySelector('.zz-wcpop');
+    if (p) p.parentElement.removeChild(p);
   }
 
   /* 隐藏头图上方的预出发日期提示条（旅行未开始 · 正在看 Dn 计划 · T-N DAYS），
@@ -1958,13 +2011,30 @@ window.__ZZ_WC = {
     st.textContent = CSS;
     document.head.appendChild(st);
     applyTheme(getTheme());
-    /* 主题按钮点击走文档级捕获委托：App 克隆重建按钮也不失效 */
+    /* 文档级捕获委托：App 克隆重建元素也不失效 */
     document.addEventListener('click', function (e) {
-      if (e.target && e.target.closest && e.target.closest('.zz-tbtheme')) {
-        e.preventDefault();
-        e.stopPropagation();
+      var t = e.target;
+      if (!t || !t.closest) return;
+      if (t.closest('.zz-tbtheme')) {
+        e.preventDefault(); e.stopPropagation();
         applyTheme(getTheme() === 'light' ? 'dark' : 'light');
+        return;
       }
+      var wch = t.closest('.zz-wch');
+      if (wch && wch.parentElement && wch.parentElement.classList.contains('zz-wcsec')) {
+        /* 方案A：折叠抽屉开合 */
+        if ((window.__ZZ_WC_MODE || 'A') === 'A') {
+          e.stopPropagation();
+          var body = wch.parentElement.querySelector('.zz-wcb');
+          var arw = wch.querySelector('.zz-wcarw');
+          var vis = body && body.style.display !== 'none';
+          if (body) body.style.display = vis ? 'none' : '';
+          if (arw) arw.textContent = vis ? '▸' : '▾';
+        }
+        return;
+      }
+      if (t.closest('.zz-wcchip')) { e.stopPropagation(); wcPopupOpen(); return; }
+      if (t.closest('.zz-wcpop-x') || (t.closest('.zz-wcpop-scrim'))) { e.stopPropagation(); wcPopupClose(); return; }
     }, true);
     /* App 解包/重渲染后自动补挂：MutationObserver 快速响应 + 周期兜底 */
     var moT = null, moBusy = false;
