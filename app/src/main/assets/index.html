@@ -397,6 +397,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 
 
+
 <!--ZZ_ADDON_BEGIN-->
 <script id="zz-addon">
 /* ============================================================
@@ -1227,10 +1228,9 @@ __ZZ_MAPS.push({
     'html.zz-light .zz-apphold{filter:invert(1) hue-rotate(180deg) contrast(.92) saturate(1.2);background:#0d0a06}',
     /* 顶栏右上角主题切换按钮：位于「走着」banner 行最右（网络点之后）。
        在 App 容器内，固定深色值 → 浅色模式经反色滤镜与顶栏其余元素同步变换 */
-    '.zz-tbtheme{flex:none;width:34px;height:34px;margin-left:2px;display:flex;align-items:center;justify-content:center;',
-    'background:rgba(0,240,255,.05);border:1px solid rgba(0,240,255,.35);border-radius:3px;color:#00F0FF;cursor:pointer;',
-    'padding:0;-webkit-tap-highlight-color:transparent}',
-    '.zz-tbtheme svg{width:19px;height:19px;display:block}',
+    '.zz-tbtheme{flex:none;width:34px;height:34px;margin-left:0;display:flex;align-items:center;justify-content:center;',
+    'background:none;border:none;color:#00F0FF;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent}',
+    '.zz-tbtheme svg{width:20px;height:20px;display:block}',
     /* overlay */
     '.zz-ov{position:fixed;inset:0;z-index:9000;background:var(--zz-bg);display:none;flex-direction:column;font-family:"Noto Sans SC",system-ui,sans-serif}',
     '.zz-ov.on{display:flex}',
