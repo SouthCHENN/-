@@ -387,6 +387,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 
 
+
+
 <!--ZZ_ADDON_BEGIN-->
 <script id="zz-addon">
 /* ============================================================
@@ -1252,9 +1254,9 @@ __ZZ_MAPS.push({
     'font:10.5px/1.6 "Share Tech Mono",monospace;color:var(--zz-dim);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}',
     '.zz-leg i{display:inline-block;width:16px;height:0;border-top:2.5px solid var(--zz-cyan);vertical-align:middle;margin:0 4px 2px 8px}',
     '.zz-leg i.r{border-top-style:dashed;border-color:var(--zz-mag)}.zz-leg i.s{border-top-style:dotted}',
-    /* 行程页内嵌地图预览（并入 ROUTE 路线卡同一框内，divider 分隔） */
-    '.zz-inline{margin:8px 4px 6px;padding-top:2px;border-top:1px solid rgba(0,240,255,.15);background:transparent;cursor:pointer;-webkit-tap-highlight-color:transparent}',
-    '.zz-inhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:8px 4px 7px}',
+    /* 行程页内嵌地图预览（并入 ROUTE 路线卡同一框内：地图在上，站点图在下） */
+    '.zz-inline{margin:6px 4px 4px;padding-bottom:8px;border-bottom:1px solid rgba(0,240,255,.15);background:transparent;cursor:pointer;-webkit-tap-highlight-color:transparent}',
+    '.zz-inhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:6px 4px 7px}',
     '.zz-inhead b{font:600 10px "Share Tech Mono",monospace;color:#00F0FF;opacity:.8;letter-spacing:.5px;font-weight:600}',
     '.zz-inhead span{font:600 10px "Share Tech Mono",monospace;color:#5E7186;white-space:nowrap}',
     '.zz-inthumb{position:relative;border:1px solid rgba(0,240,255,.18);border-radius:3px;overflow:hidden}',
@@ -1619,28 +1621,31 @@ __ZZ_MAPS.push({
     12: { '大教堂': 0, '城堡': 0, '布雷拉': 0, '伴手礼': 0, '运河': 1 },
   };
 
-  /* 捕获阶段监听路线卡点击：站点自身 stopPropagation 挡不住 capture，
-     既能切图，也不影响 App 原有「点站点弹节点卡片」 */
+  /* 捕获阶段监听路线卡点击：站点（圆点+站名+时刻容器）命中时拦截——
+     只切换对应子图，不再弹出节点信息卡（capture 先于站点自身 handler） */
   function onRouteClick(e) {
-    var rules = STOP_MI[inlineState.day];
-    if (!rules || !inlineBox) return;
+    if (!inlineBox) return;
     if (e.target.closest && e.target.closest('.zz-inline')) return; /* 预览区自己的点击 */
-    var el = e.target, text = '';
-    for (var up = 0; el && up < 4; up++) {
-      text = (el.textContent || '').replace(/\s+/g, '');
-      if (text && text.length <= 16) break;
+    var el = e.target, m = null;
+    for (var up = 0; el && el !== e.currentTarget && up < 5; up++) {
+      var text = (el.textContent || '').replace(/\s+/g, '');
+      if (text && text.length <= 16) {
+        m = /^(.+?)(\d{1,2}:\d{2})$/.exec(text); /* 站名+时刻 → 是站点 */
+        if (m) break;
+      }
       el = el.parentElement;
     }
-    if (!text || text.length > 16) return;
-    var hit = null, hitLen = -1;
+    if (!m) return;             /* 非站点区域：交给 App */
+    e.stopPropagation();        /* 站点点击仅切图，不弹节点卡片 */
+    var rules = STOP_MI[inlineState.day];
+    if (!rules) return;         /* 单图日：无需切换 */
+    var label = m[1], hit = null, hitLen = -1;
     for (var k in rules) {
       var kk = k.replace(/\s+/g, '');
-      if (text.indexOf(kk) === 0 && kk.length > hitLen) { hit = k; hitLen = kk.length; }
+      if (label.indexOf(kk) === 0 && kk.length > hitLen) { hit = k; hitLen = kk.length; }
     }
-    if (hit == null) return;
-    var mi = rules[hit];
-    if (mi !== inlineState.mi && (window.__ZZ_MAPS || []).length) {
-      inlineState.mi = mi;
+    if (hit != null && rules[hit] !== inlineState.mi) {
+      inlineState.mi = rules[hit];
       renderInline(inlineState.day);
     }
   }
@@ -1662,7 +1667,7 @@ __ZZ_MAPS.push({
       if (!card || card === document.body) {
         card = el.parentElement && el.parentElement.parentElement; /* 标签→头行→卡片 兜底 */
       }
-      if (card) return { day: +mm[1], card: card };
+      if (card) return { day: +mm[1], card: card, head: el.parentElement };
     }
     return null;
   }
@@ -1671,7 +1676,7 @@ __ZZ_MAPS.push({
     var list = mapsOf(day), m = list[inlineState.mi] || list[0];
     if (!m) { inlineBox.innerHTML = ''; return; }
     var hint = list.length > 1
-      ? (inlineState.mi + 1) + '/' + list.length + ' · 点站点切图 · 点图全屏'
+      ? (inlineState.mi + 1) + '/' + list.length + ' · 点下方站点切图 · 点图全屏'
       : '点击全屏缩放';
     var h = '<div class="zz-inhead"><b>MAP// ' + esc(m.t) + '</b><span>' + hint + '</span></div>';
     h += '<div class="zz-inthumb">' + renderMap(m) + '<span class="zz-inzoom">⛶ 全屏</span></div>';
@@ -1684,8 +1689,10 @@ __ZZ_MAPS.push({
       if (inlineBox && inlineBox.parentElement) inlineBox.parentElement.removeChild(inlineBox);
       return;
     }
+    rewriteHint(r);
     var ok = inlineBox && inlineBox.isConnected &&
-      inlineBox.parentElement === r.card && inlineState.day === r.day;
+      inlineBox.parentElement === r.card &&
+      inlineBox.previousElementSibling === r.head && inlineState.day === r.day;
     if (ok) return;
     if (inlineState.day !== r.day) inlineState = { day: r.day, mi: 0 };
     if (!inlineBox) {
@@ -1697,10 +1704,29 @@ __ZZ_MAPS.push({
       });
     }
     renderInline(r.day);
-    r.card.appendChild(inlineBox); /* 并入路线卡同一框内（末尾） */
+    /* 同框内：地图在上（紧跟 ROUTE 头行），路线站点图在地图之下 */
+    if (r.head && r.head.parentElement === r.card) {
+      r.card.insertBefore(inlineBox, r.head.nextSibling);
+    } else {
+      r.card.insertBefore(inlineBox, r.card.firstChild);
+    }
     if (!r.card.__zzMapBound) {
       r.card.addEventListener('click', onRouteClick, true);
       r.card.__zzMapBound = true;
+    }
+  }
+
+  /* App 自带的「节点可点 → 弹节点卡片」提示已不再成立，改写为切图提示 */
+  function rewriteHint(r) {
+    var divs = r.card.querySelectorAll('div');
+    var multi = mapsOf(r.day).length > 1;
+    for (var i = 0; i < divs.length; i++) {
+      var t = (divs[i].textContent || '').trim();
+      if (t.indexOf('节点可点') === 0 || t.indexOf('点击站点') === 0 || t.indexOf('每日地图') === 0) {
+        var want = multi ? '点击站点 → 切换上方地图' : '每日地图见上方 · 点图可全屏';
+        if (t !== want) divs[i].textContent = want;
+        break;
+      }
     }
   }
 
