@@ -395,6 +395,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 
 
+
+
 <!--ZZ_ADDON_BEGIN-->
 <script id="zz-addon">
 /* ============================================================
@@ -1223,16 +1225,12 @@ __ZZ_MAPS.push({
     '--zzm-rail:#8A9AB0;--zzm-text:#15222F;--zzm-halo:#FFFFFF;--zzm-note:#5A6E82;--zzm-grid:rgba(0,100,120,.06)}',
     /* 浅色模式：整体反色滤镜作用于 App 容器（插件 UI 不受影响，走上面的变量） */
     'html.zz-light .zz-apphold{filter:invert(1) hue-rotate(180deg) contrast(.92) saturate(1.2);background:#0d0a06}',
-    /* 浮动按钮 */
-    '.zz-fabs{position:fixed;right:10px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:8000;display:flex;flex-direction:column;gap:10px}',
-    '.zz-fab{position:relative;width:46px;height:46px;border-radius:4px;border:1px solid var(--zz-line);background:rgba(13,20,36,.88);',
-    'color:var(--zz-cyan);display:flex;align-items:center;justify-content:center;cursor:pointer;',
-    'box-shadow:0 0 14px rgba(0,240,255,.22);-webkit-tap-highlight-color:transparent}',
-    /* 浅色模式按钮底色取周围页面实际底色（#E2E7F6），与深色模式太阳按钮
-       融入背景的表现保持一致；图标保持品牌淡青色 */
-    'html.zz-light .zz-fab{background:rgba(226,231,246,.92);box-shadow:0 2px 10px rgba(20,40,60,.14)}',
-    '.zz-fab svg{width:24px;height:24px;display:block}',
-    '.zz-fab .zz-fabtag{position:absolute;font:9px "Share Tech Mono",monospace;bottom:2px;right:3px;opacity:.7}',
+    /* 顶栏右上角主题切换按钮：位于「走着」banner 行最右（网络点之后）。
+       在 App 容器内，固定深色值 → 浅色模式经反色滤镜与顶栏其余元素同步变换 */
+    '.zz-tbtheme{flex:none;width:34px;height:34px;margin-left:2px;display:flex;align-items:center;justify-content:center;',
+    'background:rgba(0,240,255,.05);border:1px solid rgba(0,240,255,.35);border-radius:3px;color:#00F0FF;cursor:pointer;',
+    'padding:0;-webkit-tap-highlight-color:transparent}',
+    '.zz-tbtheme svg{width:19px;height:19px;display:block}',
     /* overlay */
     '.zz-ov{position:fixed;inset:0;z-index:9000;background:var(--zz-bg);display:none;flex-direction:column;font-family:"Noto Sans SC",system-ui,sans-serif}',
     '.zz-ov.on{display:flex}',
@@ -1418,8 +1416,8 @@ __ZZ_MAPS.push({
     document.documentElement.classList.toggle('zz-light', light);
     try { localStorage.setItem(LSK_THEME, mode); } catch (e) {}
     try { if (window.ZouzheBridge && window.ZouzheBridge.setTheme) window.ZouzheBridge.setTheme(mode); } catch (e) {}
-    var tb = document.querySelector('.zz-fab-theme');
-    if (tb) tb.innerHTML = light ? ICON_MOON : ICON_SUN;
+    var tb = document.querySelector('.zz-tbtheme');
+    if (tb) { tb.innerHTML = light ? ICON_MOON : ICON_SUN; tb.setAttribute('data-ic', mode); }
   }
   function tagAppHolder() {
     /* 给 App 最外层容器打标（浅色反色滤镜的作用对象），重渲染后自动补 */
@@ -1783,19 +1781,31 @@ __ZZ_MAPS.push({
   }
 
   /* ---------------- 挂载 ---------------- */
-  function mountFabs() {
-    if (document.querySelector('.zz-fabs')) return;
-    var box = document.createElement('div');
-    box.className = 'zz-fabs';
+  /* 主题切换按钮固定在「走着」banner 顶栏最右（重渲染丢失由 sync 补挂） */
+  function mountThemeBtn() {
+    /* App 补丁式重渲染会克隆节点导致实例监听器丢失——点击走文档级委托
+       （见 boot），这里只负责存在性与图标状态 */
+    var ex = document.querySelector('.zz-tbtheme');
+    if (ex) {
+      if (ex.getAttribute('data-ic') !== getTheme()) {
+        ex.innerHTML = getTheme() === 'light' ? ICON_MOON : ICON_SUN;
+        ex.setAttribute('data-ic', getTheme());
+      }
+      return;
+    }
+    var mark = null, divs = document.getElementsByTagName('div');
+    for (var i = 0; i < divs.length; i++) {
+      var el = divs[i];
+      if ((el.textContent || '').trim() === '走着' &&
+          ((el.getAttribute('style') || '').indexOf('19px') >= 0)) { mark = el; break; }
+    }
+    if (!mark || !mark.parentElement) return;
     var bt = document.createElement('button');
-    bt.className = 'zz-fab zz-fab-theme';
+    bt.className = 'zz-tbtheme';
     bt.setAttribute('aria-label', '深浅色切换');
+    bt.setAttribute('data-ic', getTheme());
     bt.innerHTML = getTheme() === 'light' ? ICON_MOON : ICON_SUN;
-    bt.addEventListener('click', function () {
-      applyTheme(getTheme() === 'light' ? 'dark' : 'light');
-    });
-    box.appendChild(bt);
-    document.body.appendChild(box);
+    mark.parentElement.appendChild(bt);
   }
 
   function boot() {
@@ -1804,6 +1814,14 @@ __ZZ_MAPS.push({
     st.textContent = CSS;
     document.head.appendChild(st);
     applyTheme(getTheme());
+    /* 主题按钮点击走文档级捕获委托：App 克隆重建按钮也不失效 */
+    document.addEventListener('click', function (e) {
+      if (e.target && e.target.closest && e.target.closest('.zz-tbtheme')) {
+        e.preventDefault();
+        e.stopPropagation();
+        applyTheme(getTheme() === 'light' ? 'dark' : 'light');
+      }
+    }, true);
     /* App 解包/重渲染后自动补挂：MutationObserver 快速响应 + 周期兜底 */
     var moT = null, moBusy = false;
     function sync() {
@@ -1812,7 +1830,7 @@ __ZZ_MAPS.push({
       try {
         if (!document.getElementById('zz-addon-style')) document.head.appendChild(st);
         if (tagAppHolder()) {
-          mountFabs();
+          mountThemeBtn();
           hideBanner();
           ensureInline();
           if (ov && !document.body.contains(ov)) document.body.appendChild(ov);
