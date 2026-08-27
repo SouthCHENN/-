@@ -5,10 +5,10 @@
   <title>Bundled Page</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #faf9f5; display: flex; align-items: center; justify-content: center; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
-    #__bundler_loading { position: fixed; bottom: 20px; right: 20px; font: 13px/1.4 -apple-system, BlinkMacSystemFont, sans-serif; color: #666; background: #fff; padding: 8px 14px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.12); z-index: 10000; }
-    #__bundler_thumbnail { position: fixed; inset: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #faf9f5; z-index: 9999; }
-    #__bundler_thumbnail svg { width: 100%; height: 100%; object-fit: contain; }
+    body { background: #0A0F1C; display: flex; align-items: center; justify-content: center; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+    #__bundler_loading { position: fixed; bottom: 20px; right: 20px; font: 13px/1.4 -apple-system, BlinkMacSystemFont, sans-serif; color: #7FDBE8; background: rgba(13,20,36,.92); border: 1px solid rgba(0,240,255,.25); padding: 8px 14px; border-radius: 4px; box-shadow: 0 0 12px rgba(0,240,255,.18); z-index: 10000; }
+    #__bundler_thumbnail { position: fixed; inset: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #0A0F1C; z-index: 9999; }
+    #__bundler_thumbnail svg { width: min(46vw, 220px); height: min(46vw, 220px); }
     #__bundler_placeholder { color: #999; font-size: 14px; }
   </style>
   <noscript>
@@ -19,7 +19,7 @@
   </noscript>
 </head>
 <body>
-  <div id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" sc-camel-view-box="0 0 100 100"><rect width="100" height="100" fill="#0A0F1C"></rect><circle cx="62" cy="40" r="13" fill="#FF2E88" opacity="0.9"></circle><path d="M22 70 L40 48 L54 62 L66 52 L80 70 Z" fill="none" stroke="#00F0FF" stroke-width="3"></path><path d="M24 78 H78" stroke="#00F0FF" stroke-width="2" opacity="0.4"></path></svg></div>
+  <div id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#0A0F1C"></rect><circle cx="62" cy="40" r="13" fill="#FF2E88" opacity="0.9"></circle><path d="M22 70 L40 48 L54 62 L66 52 L80 70 Z" fill="none" stroke="#00F0FF" stroke-width="3"></path><path d="M24 78 H78" stroke="#00F0FF" stroke-width="2" opacity="0.4"></path></svg></div>
   <div id="__bundler_loading">Unpacking...</div>
 
   <script>

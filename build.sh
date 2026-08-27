@@ -14,7 +14,7 @@ OUT="$ROOT/build"
 DIST="$ROOT/dist"
 KS="$ROOT/keystore/zouzhe.keystore"
 KS_PASS="zouzhe2026"
-APK_NAME="zouzhe-v1.0.0.apk"
+APK_NAME="zouzhe-v1.0.1.apk"
 
 rm -rf "$OUT"
 mkdir -p "$OUT/gen" "$OUT/classes" "$DIST" "$ROOT/keystore"
