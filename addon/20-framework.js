@@ -330,6 +330,7 @@
     ov.querySelector('.zz-zr').addEventListener('click', function () { fit(); });
     bindGestures();
     window.addEventListener('popstate', function () {
+      if (window.__ZZ_NAV_CONSUMED) return; /* 本次返回已被票根浮层消费 */
       if (ov && ov.classList.contains('on')) { state.pushed = false; hide(); }
     });
   }
@@ -691,6 +692,17 @@
         } catch (e) { cb(false); }
       });
     },
+    put: function (rec, cb) {
+      TKDB.open(function (db) {
+        if (!db) { cb(false); return; }
+        try {
+          var tx = db.transaction('stubs', 'readwrite');
+          tx.objectStore('stubs').put(rec);
+          tx.oncomplete = function () { cb(true); };
+          tx.onerror = function () { cb(false); };
+        } catch (e) { cb(false); }
+      });
+    },
     del: function (id, cb) {
       TKDB.open(function (db) {
         if (!db) { cb(false); return; }
@@ -704,12 +716,59 @@
     },
   };
 
-  var tkList = [], tkUrls = {}, tkViewId = null;
-  function tkUrl(rec) {
+  var tkList = [], tkUrls = {}, tkTUrls = {}, tkViewId = null;
+  function tkFullUrl(rec) {
     if (!tkUrls[rec.id]) {
       try { tkUrls[rec.id] = URL.createObjectURL(rec.blob); } catch (e) { tkUrls[rec.id] = ''; }
     }
     return tkUrls[rec.id];
+  }
+  function tkThumbUrl(rec) {
+    /* 网格只解码 320px 缩略图，避免原图解码阻塞主线程（卡顿/假死根因） */
+    if (!tkTUrls[rec.id]) {
+      try { tkTUrls[rec.id] = URL.createObjectURL(rec.thumb || rec.blob); } catch (e) { tkTUrls[rec.id] = ''; }
+    }
+    return tkTUrls[rec.id];
+  }
+  /* 生成缩略图：createImageBitmap 在 Chromium 中于工作线程解码+缩放，不阻塞 UI */
+  function tkMakeThumb(blob, cb) {
+    var done = false;
+    function finish(b) { if (!done) { done = true; cb(b || null); } }
+    try {
+      if (window.createImageBitmap) {
+        setTimeout(function () { finish(null); }, 10000);
+        createImageBitmap(blob, { resizeWidth: 320, resizeQuality: 'medium' }).then(function (bmp) {
+          try {
+            var c = document.createElement('canvas');
+            c.width = bmp.width; c.height = bmp.height;
+            c.getContext('2d').drawImage(bmp, 0, 0);
+            if (bmp.close) bmp.close();
+            if (c.toBlob) c.toBlob(function (b) { finish(b); }, 'image/jpeg', 0.8);
+            else finish(null);
+          } catch (e) { finish(null); }
+        })['catch'](function () { finish(null); });
+        return;
+      }
+    } catch (e) {}
+    finish(null);
+  }
+  var tkBackfilling = false;
+  function tkBackfillThumbs() {
+    /* 旧记录无缩略图：每轮只补一张，避免突发解码 */
+    if (tkBackfilling) return;
+    var rec = null;
+    for (var i = 0; i < tkList.length; i++) if (!tkList[i].thumb) { rec = tkList[i]; break; }
+    if (!rec) return;
+    tkBackfilling = true;
+    tkMakeThumb(rec.blob, function (tb) {
+      if (!tb) { tkBackfilling = false; return; }
+      rec.thumb = tb;
+      TKDB.put(rec, function () {
+        tkBackfilling = false;
+        try { if (tkTUrls[rec.id]) { URL.revokeObjectURL(tkTUrls[rec.id]); delete tkTUrls[rec.id]; } } catch (e) {}
+        tkRefresh();
+      });
+    });
   }
   function tkRefresh() {
     TKDB.all(function (list) {
@@ -719,19 +778,28 @@
       var c = document.querySelector('.zz-tkcard');
       if (c) c.removeAttribute('data-key');
       ensureTickets();
+      tkBackfillThumbs();
     });
   }
 
   function tkGridHtml(items, withCap) {
     var h = '<div class="zz-tkgrid">';
     items.forEach(function (it) {
-      h += '<div class="zz-tkthumb" data-id="' + it.id + '"><img src="' + tkUrl(it) + '" alt="">' +
+      h += '<div class="zz-tkthumb" data-id="' + it.id + '"><img src="' + tkThumbUrl(it) + '" decoding="async" loading="lazy" alt="">' +
         (withCap ? '<span class="zz-tkcap">' + esc(it.node) + '</span>' : '') + '</div>';
     });
     h += '<div class="zz-tkadd"><span>＋</span>添加</div></div>';
     return h;
   }
 
+  window.__ZZ_TK_REBUILDS = 0;
+  var tkRb = { key: '', n: 0, t: 0 };
+  function tkAllowRebuild(key) {
+    var now = performance.now();
+    if (key !== tkRb.key || now - tkRb.t > 5000) { tkRb.key = key; tkRb.n = 0; tkRb.t = now; }
+    tkRb.n++;
+    return tkRb.n <= 4; /* 同一 key 5 秒内最多重建 4 次，超出熔断等待下一周期 */
+  }
   function ensureTickets() {
     /* 节点级：详情卡内「本节点票根」区（厕所位置之上） */
     var sheet = findSheet();
@@ -744,6 +812,8 @@
         var mine = tkList.filter(function (r) { return r.day === nd.day && r.node === nd.title; });
         var key = nd.day + '|' + nd.title + '|' + mine.map(function (r) { return r.id; }).join(',');
         if (!oldSec || oldSec.getAttribute('data-key') !== key) {
+          if (!tkAllowRebuild('n' + key)) return;
+          window.__ZZ_TK_REBUILDS++;
           if (oldSec) oldSec.parentElement.removeChild(oldSec);
           var sec = document.createElement('div');
           sec.className = 'zz-tksec';
@@ -778,6 +848,8 @@
     if (!host || host === document.body) host = anchor.parentElement.parentElement;
     var ok = oldCard && oldCard.getAttribute('data-key') === keyD && oldCard.previousElementSibling === host;
     if (ok) return;
+    if (!tkAllowRebuild('d' + keyD)) return;
+    window.__ZZ_TK_REBUILDS++;
     if (oldCard) oldCard.parentElement.removeChild(oldCard);
     var dc = document.createElement('div');
     dc.className = 'zz-tkcard';
@@ -801,11 +873,15 @@
         var f = tkInput.files && tkInput.files[0];
         tkInput.value = '';
         if (!f || !tkPending) return;
-        TKDB.add({ day: tkPending.day, node: tkPending.node, blob: f, name: f.name || '' },
-          function (okAdd) {
-            zzToast(okAdd ? '票根已保存（原图）' : '保存失败：本机不支持离线图库');
-            if (okAdd) tkRefresh();
-          });
+        var pend = tkPending;
+        zzToast('正在保存…');
+        tkMakeThumb(f, function (tb) {
+          TKDB.add({ day: pend.day, node: pend.node, blob: f, thumb: tb, name: f.name || '' },
+            function (okAdd) {
+              zzToast(okAdd ? '票根已保存（原图）' : '保存失败：存储空间不足或本机不支持离线图库');
+              if (okAdd) tkRefresh();
+            });
+        });
       });
       document.body.appendChild(tkInput);
     }
@@ -835,7 +911,7 @@
     });
     h += '</div><button class="zz-tkview-x zz-tkpick-x" style="width:100%">取消</button></div>';
     v.innerHTML = h;
-    document.body.appendChild(v);
+    tkOverlayShow(v);
   }
 
   /* —— 删除：长按缩略图（600ms）→ 确认；全屏查看内删除按钮同确认 —— */
@@ -848,12 +924,55 @@
       '<div class="zz-tkcfm-row">' +
       '<button class="zz-tkview-x zz-tkcfm-no">取消</button>' +
       '<button class="zz-tkview-del zz-tkcfm-yes" data-id="' + id + '">删除</button></div></div>';
-    document.body.appendChild(v);
+    tkOverlayShow(v);
   }
-  function tkOverlayClose(sel) {
-    var v = document.querySelector(sel);
-    if (v) v.parentElement.removeChild(v);
+  /* 浮层统一开合：入栈一条 history，Android 返回键可关闭（否则全屏浮层挡住
+     整页、用户误以为「点不动」）；关闭时回收原图位图，避免渲染进程内存堆积 */
+  var tkInPop = false, tkSelfBack = 0;
+  window.__ZZ_NAV_CONSUMED = false;
+  function tkOverlayShow(el) {
+    el.__t0 = performance.now();
+    document.body.appendChild(el);
+    try { history.pushState({ zztk: 1 }, ''); el.__pushed = true; } catch (e) { el.__pushed = false; }
   }
+  /* 长按弹出的确认框正好落在手指下方，抬手产生的 click 会打到它的蒙层上
+     并立即关闭——开启后 400ms 内吞掉浮层上的点击，不执行任何动作 */
+  function tkFresh(el) { return el && el.__t0 != null && performance.now() - el.__t0 < 400; }
+  function tkOverlayHide(el) {
+    if (!el || !el.parentElement) return;
+    var pushed = el.__pushed;
+    el.__pushed = false;
+    if (el.classList && el.classList.contains('zz-tkview')) tkReleaseFull();
+    el.parentElement.removeChild(el);
+    if (pushed && !tkInPop) {
+      tkSelfBack++;
+      try { history.back(); } catch (e) { tkSelfBack--; }
+    }
+  }
+  function tkOverlayClose(sel) { tkOverlayHide(document.querySelector(sel)); }
+  function tkTopOverlay() {
+    return document.querySelector('.zz-tkcfm') || document.querySelector('.zz-tkpick') ||
+      document.querySelector('.zz-tkview');
+  }
+  function tkNavDone() { setTimeout(function () { window.__ZZ_NAV_CONSUMED = false; }, 0); }
+  window.addEventListener('popstate', function () {
+    /* 关闭浮层时我们自己调用的 history.back() 会回弹一次 popstate：
+       吸收掉，否则会连带关闭它下面那层浮层 */
+    if (tkSelfBack > 0) {
+      tkSelfBack--;
+      window.__ZZ_NAV_CONSUMED = true;
+      tkNavDone();
+      return;
+    }
+    var top = tkTopOverlay();
+    if (!top) return;
+    tkInPop = true;
+    window.__ZZ_NAV_CONSUMED = true;   /* 让地图查看器的 popstate 处理跳过本次 */
+    try { tkOverlayHide(top); } finally {
+      tkInPop = false;
+      tkNavDone();
+    }
+  });
 
   var lpT = null, lpFired = false;
   function lpStart(e) {
@@ -874,7 +993,7 @@
     tkViewId = id;
     var v = document.createElement('div');
     v.className = 'zz-tkview';
-    v.innerHTML = '<div class="zz-tkview-scrim"></div><img src="' + tkUrl(rec) + '" alt="">' +
+    v.innerHTML = '<div class="zz-tkview-scrim"></div><img src="' + tkFullUrl(rec) + '" decoding="async" alt="">' +
       '<div class="zz-tkview-cap">D' + rec.day + ' · ' + esc(rec.node) + '</div>' +
       '<div class="zz-tkview-hint">原图展示 · 下拉关闭 · 离线可用</div>' +
       '<div class="zz-tkview-row"><button class="zz-tkview-del">删除</button>' +
@@ -884,13 +1003,19 @@
     v.addEventListener('touchmove', function (e) {
       if (y0 != null && e.touches[0].clientY - y0 > 90) { y0 = null; tkViewClose(); }
     }, { passive: true });
-    document.body.appendChild(v);
+    tkOverlayShow(v);
   }
-  function tkViewClose() {
+  /* 释放当前原图的 objectURL：手机原图解码后位图可达数十 MB，
+     不及时回收会让 WebView 渲染进程内存持续攀升直至卡死 */
+  function tkReleaseFull() {
+    var id = tkViewId;
     tkViewId = null;
-    var v = document.querySelector('.zz-tkview');
-    if (v) v.parentElement.removeChild(v);
+    if (id != null && tkUrls[id]) {
+      try { URL.revokeObjectURL(tkUrls[id]); } catch (e) {}
+      delete tkUrls[id];
+    }
   }
+  function tkViewClose() { tkOverlayClose('.zz-tkview'); }
 
   var toastT = null;
   function zzToast(msg) {
@@ -974,6 +1099,8 @@
         applyTheme(getTheme() === 'light' ? 'dark' : 'light');
         return;
       }
+      var fresh = t.closest('.zz-tkcfm') || t.closest('.zz-tkpick') || t.closest('.zz-tkview');
+      if (tkFresh(fresh)) { e.stopPropagation(); e.preventDefault(); return; }
       var th = t.closest('.zz-tkthumb');
       if (th) {
         e.stopPropagation();
@@ -1012,7 +1139,8 @@
           zzToast(okDel ? '已删除' : '删除失败');
           if (okDel) {
             try { if (tkUrls[id]) URL.revokeObjectURL(tkUrls[id]); } catch (e2) {}
-            delete tkUrls[id];
+            try { if (tkTUrls[id]) URL.revokeObjectURL(tkTUrls[id]); } catch (e3) {}
+            delete tkUrls[id]; delete tkTUrls[id];
             if (tkViewId === id) tkViewClose();
             tkRefresh();
           }
@@ -1026,9 +1154,9 @@
       if (t.closest('.zz-tkview-x') || t.closest('.zz-tkview-scrim')) { e.stopPropagation(); tkViewClose(); return; }
     }, true);
     /* 长按缩略图（600ms）→ 删除确认 */
-    document.addEventListener('touchstart', lpStart, true);
-    document.addEventListener('touchmove', lpCancel, true);
-    document.addEventListener('touchend', lpCancel, true);
+    document.addEventListener('touchstart', lpStart, { passive: true, capture: true });
+    document.addEventListener('touchmove', lpCancel, { passive: true, capture: true });
+    document.addEventListener('touchend', lpCancel, { passive: true, capture: true });
     document.addEventListener('mousedown', lpStart, true);
     document.addEventListener('mouseup', lpCancel, true);
     tkRefresh();

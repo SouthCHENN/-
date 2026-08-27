@@ -288,6 +288,11 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        // 选择器未返回就销毁时必须回调，否则重建后 <input type="file"> 永久失效
+        if (fileChooserCb != null) {
+            fileChooserCb.onReceiveValue(null);
+            fileChooserCb = null;
+        }
         if (webView != null) {
             webView.destroy();
             webView = null;
