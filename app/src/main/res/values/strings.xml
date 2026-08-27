@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">走着</string>
+    <string name="no_app_found">未找到可处理该操作的应用</string>
+</resources>

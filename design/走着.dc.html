@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;padding:0;height:100%;background:#05070D}
+body{font-family:'Noto Sans SC',system-ui,-apple-system,'PingFang SC',sans-serif;color:#D8E6F0;-webkit-tap-highlight-color:transparent}
+a{color:#00F0FF}a:hover{color:#FF2E88}
+*{scrollbar-width:none;box-sizing:border-box}
+*::-webkit-scrollbar{display:none;width:0;height:0}
+@keyframes slL0{from{transform:translateX(48px);opacity:.35}to{transform:none;opacity:1}}
+@keyframes slL1{from{transform:translateX(48px);opacity:.35}to{transform:none;opacity:1}}
+@keyframes slR0{from{transform:translateX(-48px);opacity:.35}to{transform:none;opacity:1}}
+@keyframes slR1{from{transform:translateX(-48px);opacity:.35}to{transform:none;opacity:1}}
+@keyframes pulseNow{0%,100%{box-shadow:0 0 6px rgba(255,46,136,.8),0 0 18px rgba(255,46,136,.35)}50%{box-shadow:0 0 10px rgba(255,46,136,1),0 0 28px rgba(255,46,136,.55)}}
+</style>
+</helmet>
+<div style="min-height:100dvh;background:#05070D;display:flex;justify-content:center">
+<div style="width:100%;max-width:520px;height:100dvh;display:flex;flex-direction:column;background:#0A0F1C;position:relative;overflow:hidden">
+
+  <!-- 顶栏 -->
+  <div style="flex:none;display:flex;align-items:center;gap:10px;padding:12px 16px 10px;border-bottom:1px solid rgba(0,240,255,.22);background:rgba(10,15,28,.98)">
+    <div style="font:900 19px 'Noto Sans SC',system-ui;color:#00F0FF;text-shadow:0 0 12px rgba(0,240,255,.5);letter-spacing:.12em">走着</div>
+    <div style="font:11px 'Share Tech Mono',monospace;color:#5E7186">意大利 · 9.24–10.6</div>
+    <div style="flex:1"></div>
+    <div style="font:700 10px 'Share Tech Mono',monospace;color:{{ stFg }};border:1px solid {{ stBd }};background:{{ stBg }};padding:3px 8px;border-radius:2px">{{ stLabel }}</div>
+    <div title="网络状态" style="width:8px;height:8px;border-radius:50%;background:{{ netBg }};box-shadow:{{ netGlow }}"></div>
+  </div>
+
+  <!-- 内容区 -->
+  <div style="flex:1;overflow-y:auto;position:relative;display:flex;flex-direction:column">
+
+    <!-- ===== 行程 ===== -->
+    <sc-if value="{{ isToday }}" hint-placeholder-val="{{ true }}">
+    <div style="flex:none;position:sticky;top:0;z-index:5;border-bottom:1px solid rgba(0,240,255,.25);background:rgba(10,15,28,.94);backdrop-filter:blur(8px)">
+      <div ref="{{ railRef }}" style="display:flex;gap:6px;overflow-x:auto;padding:12px 12px 10px;scroll-behavior:smooth">
+        <sc-for list="{{ days }}" as="d" hint-placeholder-count="13">
+          <div onClick="{{ d.pick }}" style="flex:none;min-width:52px;min-height:48px;padding:6px 8px;border-radius:3px;border:1px solid {{ d.bd }};background:{{ d.bg }};color:{{ d.fg }};cursor:pointer;text-align:center;box-shadow:{{ d.glow }}">
+            <div style="font:700 13px 'Share Tech Mono',monospace">D{{ d.n }}</div>
+            <div style="font:10px 'Noto Sans SC',system-ui;opacity:.7;margin-top:2px">{{ d.date }}</div>
+            <sc-if value="{{ d.bag }}" hint-placeholder-val="{{ false }}"><div style="font:700 9px 'Share Tech Mono',monospace;margin-top:1px;color:#FF2E88">BAG</div></sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    <div onTouchStart="{{ swS }}" onTouchEnd="{{ swE }}" style="animation:{{ slideAnim }}">
+      <sc-if value="{{ preTrip }}" hint-placeholder-val="{{ false }}">
+        <div style="background:rgba(0,240,255,.07);border-bottom:1px solid rgba(0,240,255,.3);padding:10px 16px;font:600 13px 'Noto Sans SC',system-ui;color:#00F0FF;display:flex;justify-content:space-between;align-items:center">
+          <span>旅行未开始 · 正在看 D{{ dayN }} 计划</span><span style="font:700 13px 'Share Tech Mono',monospace">T-{{ cdDays }} DAYS</span>
+        </div>
+      </sc-if>
+      <div style="height:172px;background:{{ heroBg }};display:flex;flex-direction:column;justify-content:flex-end;padding:14px 16px;position:relative;border-bottom:1px solid rgba(255,46,136,.35)">
+        <svg viewBox="0 0 412 172" preserveAspectRatio="xMidYMax slice" style="position:absolute;inset:0;width:100%;height:100%">
+          <circle cx="{{ heroSunX }}" cy="{{ heroSunY }}" r="42" fill="{{ heroSunC }}" opacity="0.15"></circle>
+          <circle cx="{{ heroSunX }}" cy="{{ heroSunY }}" r="26" fill="{{ heroSunC }}" opacity="0.9"></circle>
+          <path d="{{ heroFarD }}" fill="rgba(0,240,255,.10)"></path>
+          <path d="{{ heroMainD }}" fill="#070C19" stroke="rgba(0,240,255,.6)" stroke-width="1.5"></path>
+          <path d="{{ heroDecoD }}" fill="none" stroke="{{ heroSunC }}" stroke-width="1.2" opacity="0.65"></path>
+          <path d="M0 148 H412 M0 157 H412 M0 166 H412" stroke="rgba(0,240,255,.12)" stroke-width="1" fill="none"></path>
+        </svg>
+        <div style="position:absolute;inset:0;background:linear-gradient(0deg,rgba(10,15,28,.82),transparent 55%)"></div>
+        <div style="position:relative;display:flex;align-items:baseline;gap:8px">
+          <div style="font:900 24px/1.2 'Noto Sans SC',system-ui;color:#fff;text-shadow:0 0 14px rgba(0,240,255,.55)">{{ dayTitle }}</div>
+          <div style="font:700 11px 'Share Tech Mono',monospace;color:#00F0FF">{{ dayWk }}</div>
+        </div>
+        <div style="position:relative;font:500 12.5px 'Noto Sans SC',system-ui;color:#9FB6C9;margin-top:3px">{{ daySum }}</div>
+      </div>
+      <sc-if value="{{ isBagDay }}" hint-placeholder-val="{{ true }}">
+        <div style="background:rgba(255,46,136,.08);padding:10px 16px;display:flex;gap:8px;align-items:center;border-bottom:1px solid rgba(255,46,136,.3)">
+          <div style="flex:none;font:700 10px 'Share Tech Mono',monospace;background:#FF2E88;color:#0A0F1C;padding:2px 7px;border-radius:2px;box-shadow:0 0 10px rgba(255,46,136,.6)">行李日</div>
+          <div style="font:600 12.5px 'Noto Sans SC',system-ui;color:#FF7AB3">{{ bagLine }}</div>
+        </div>
+      </sc-if>
+      <div style="margin:12px 14px 0;border-radius:4px;background:rgba(0,240,255,.04);border:1px solid rgba(0,240,255,.22);padding:10px 8px 4px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:0 4px">
+          <div style="flex:none;font:600 10px 'Share Tech Mono',monospace;color:#00F0FF;opacity:.7">ROUTE // D{{ dayN }}</div>
+          <div style="font:600 10px 'Share Tech Mono',monospace;color:#5E7186;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ routeLine }}</div>
+        </div>
+        <div style="position:relative;height:80px;margin-top:4px">
+          <div style="position:absolute;left:6%;right:6%;top:25px;border-top:2px solid rgba(0,240,255,.25)"></div>
+          <sc-for list="{{ rtSegs }}" as="sg" hint-placeholder-count="4">
+            <div style="position:absolute;left:{{ sg.left }};top:6px;transform:translateX(-50%);font:600 9px 'Share Tech Mono',monospace;color:rgba(0,240,255,.75);white-space:nowrap">{{ sg.label }}</div>
+          </sc-for>
+          <sc-for list="{{ rtStops }}" as="sp" hint-placeholder-count="5">
+            <div onClick="{{ sp.open }}" style="position:absolute;left:{{ sp.left }};top:0;transform:translateX(-50%);width:72px;display:flex;flex-direction:column;align-items:center;cursor:pointer;padding-top:19px">
+              <div style="width:13px;height:13px;border-radius:50%;background:{{ sp.fill }};border:2px solid {{ sp.stroke }};box-shadow:{{ sp.glow }}"></div>
+              <div style="font:600 10.5px 'Noto Sans SC',system-ui;color:{{ sp.labelFg }};margin-top:6px;white-space:nowrap">{{ sp.label }}</div>
+              <div style="font:9px 'Share Tech Mono',monospace;color:#5E7186;margin-top:1px">{{ sp.time }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <sc-if value="{{ hasTip }}" hint-placeholder-val="{{ false }}">
+          <div style="font:11px 'Noto Sans SC',system-ui;color:#FF7AB3;text-align:center;padding:2px 4px 4px">⚠ {{ dayTip }}</div>
+        </sc-if>
+        <div style="font:9px 'Share Tech Mono',monospace;color:#3A4A5C;text-align:center;padding:2px 0 4px">节点可点 → 弹节点卡片</div>
+      </div>
+      <div style="padding:10px 0 4px">
+        <sc-for list="{{ nodes }}" as="n" hint-placeholder-count="8">
+          <div onClick="{{ n.open }}" style="display:flex;gap:10px;padding:11px 16px;cursor:pointer;opacity:{{ n.op }};background:{{ n.rowBg }};border-left:2px solid {{ n.railBd }}">
+            <div style="flex:none;width:46px;font:700 13px 'Share Tech Mono',monospace;padding-top:2px;text-align:right;color:{{ n.timeFg }}">{{ n.time }}</div>
+            <div style="flex:none;display:flex;flex-direction:column;align-items:center;width:14px">
+              <div style="width:9px;height:9px;border-radius:50%;background:{{ n.dotBg }};border:1.5px solid {{ n.dotBd }};margin-top:4px;animation:{{ n.dotAnim }}"></div>
+              <div style="width:1px;flex:1;background:rgba(0,240,255,.2);margin-top:3px"></div>
+            </div>
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                <div style="font:{{ n.weight }} 14px/1.45 'Noto Sans SC',system-ui;color:{{ n.titleFg }}">{{ n.title }}</div>
+                <sc-if value="{{ n.isCurrent }}" hint-placeholder-val="{{ false }}"><div style="font:700 10px 'Share Tech Mono',monospace;background:#FF2E88;color:#0A0F1C;padding:1px 7px;border-radius:2px;box-shadow:0 0 10px rgba(255,46,136,.6)">NOW</div></sc-if>
+                <sc-if value="{{ n.hasTag }}" hint-placeholder-val="{{ false }}"><div style="font:700 9px 'Share Tech Mono',monospace;color:#00F0FF;border:1px solid rgba(0,240,255,.35);padding:1px 5px;border-radius:2px">{{ n.tag }}</div></sc-if>
+              </div>
+              <sc-if value="{{ n.hasSub }}" hint-placeholder-val="{{ true }}"><div style="font:11.5px/1.5 'Noto Sans SC',system-ui;color:#5E7186;margin-top:2px">{{ n.sub }}</div></sc-if>
+              <sc-if value="{{ n.hasAlt }}" hint-placeholder-val="{{ false }}">
+                <div onClick="{{ n.toggleAlt }}" style="margin-top:6px;font:600 11.5px 'Noto Sans SC',system-ui;color:#00F0FF;background:rgba(0,240,255,.07);border:1px solid rgba(0,240,255,.25);border-radius:3px;padding:6px 10px;display:inline-block">{{ n.altArrow }} 备选方案</div>
+                <sc-if value="{{ n.altOpen }}" hint-placeholder-val="{{ false }}">
+                  <div style="margin-top:5px;font:11.5px/1.55 'Noto Sans SC',system-ui;color:#9FB6C9;background:rgba(0,240,255,.05);border-left:2px solid #00F0FF;border-radius:0 4px 4px 0;padding:8px 10px">{{ n.altText }}</div>
+                </sc-if>
+              </sc-if>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      <!-- 住宿 & 饭店 -->
+      <div style="margin:6px 14px 18px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,.03);border:1px solid rgba(0,240,255,.2)">
+        <div onClick="{{ toggleStay }}" style="display:flex;align-items:center;justify-content:space-between;padding:13px 14px;cursor:pointer;min-height:48px">
+          <div style="font:700 14px 'Noto Sans SC',system-ui;color:#00F0FF">住宿 & 饭店</div>
+          <div style="font:600 12px 'Share Tech Mono',monospace;color:#5E7186">{{ stayArrow }}</div>
+        </div>
+        <sc-if value="{{ stayOpen }}" hint-placeholder-val="{{ true }}">
+          <div style="border-top:1px solid rgba(0,240,255,.15);padding:12px 14px;display:flex;flex-direction:column;gap:12px">
+            <sc-if value="{{ hasStay }}" hint-placeholder-val="{{ true }}">
+              <div>
+                <div style="font:700 10px 'Share Tech Mono',monospace;color:#FF2E88;margin-bottom:5px">今晚住宿</div>
+                <div style="font:700 14.5px 'Noto Sans SC',system-ui;color:#fff">{{ stayName }}</div>
+                <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+                  <div style="flex:1;font:12.5px/1.45 'Noto Sans SC',system-ui;color:#9FB6C9">{{ stayAddr }}</div>
+                  <button onClick="{{ copyStayAddr }}" style="flex:none;font:600 12px 'Noto Sans SC',system-ui;border:1px solid rgba(0,240,255,.35);background:rgba(0,240,255,.07);color:#00F0FF;border-radius:3px;padding:8px 13px;cursor:pointer;min-height:36px">复制</button>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;margin-top:5px">
+                  <a href="{{ stayTelHref }}" style="flex:1;font:12.5px 'Share Tech Mono',monospace;color:#9FB6C9;text-decoration:none">{{ stayTel }}</a>
+                  <button onClick="{{ copyStayTel }}" style="flex:none;font:600 12px 'Noto Sans SC',system-ui;border:1px solid rgba(0,240,255,.35);background:rgba(0,240,255,.07);color:#00F0FF;border-radius:3px;padding:8px 13px;cursor:pointer;min-height:36px">复制</button>
+                </div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ noStay }}" hint-placeholder-val="{{ false }}">
+              <div style="font:12.5px 'Noto Sans SC',system-ui;color:#9FB6C9">今晚在航班上 · 次日晨抵北京首都</div>
+            </sc-if>
+            <sc-if value="{{ hasDinner }}" hint-placeholder-val="{{ true }}">
+              <div style="border-top:1px dashed rgba(0,240,255,.15);padding-top:11px">
+                <div style="font:700 10px 'Share Tech Mono',monospace;color:#FF2E88;margin-bottom:5px">今晚饭店</div>
+                <div style="font:700 13.5px 'Noto Sans SC',system-ui;color:#fff">{{ dinnerName }}</div>
+                <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+                  <div style="flex:1;font:12.5px/1.45 'Noto Sans SC',system-ui;color:#9FB6C9">{{ dinnerInfo }}</div>
+                  <button onClick="{{ copyDinner }}" style="flex:none;font:600 12px 'Noto Sans SC',system-ui;border:1px solid rgba(0,240,255,.35);background:rgba(0,240,255,.07);color:#00F0FF;border-radius:3px;padding:8px 13px;cursor:pointer;min-height:36px">复制</button>
+                </div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ hasDeposit }}" hint-placeholder-val="{{ false }}">
+              <div style="border-top:1px dashed rgba(0,240,255,.15);padding-top:11px">
+                <div style="font:700 10px 'Share Tech Mono',monospace;color:#FF2E88;margin-bottom:5px">行李寄存</div>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div style="flex:none;font:700 10px 'Share Tech Mono',monospace;background:rgba(0,240,255,.12);color:#00F0FF;border:1px solid rgba(0,240,255,.4);padding:2px 8px;border-radius:2px">{{ depositTag }}</div>
+                  <div style="font:12.5px 'Noto Sans SC',system-ui;color:#9FB6C9">{{ depositLine }}</div>
+                </div>
+                <div style="font:11.5px/1.5 'Noto Sans SC',system-ui;color:#5E7186;margin-top:5px">{{ depositSub }}</div>
+              </div>
+            </sc-if>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ===== 总览 ===== -->
+    <sc-if value="{{ isOverview }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:0 0 16px">
+        <div onClick="{{ ovHeroClick }}" style="height:172px;background:{{ ovHeroBg }};display:flex;flex-direction:column;justify-content:flex-end;padding:14px 16px;position:relative;cursor:pointer;border-bottom:1px solid rgba(0,240,255,.35)">
+          <svg viewBox="0 0 412 172" preserveAspectRatio="xMidYMax slice" style="position:absolute;inset:0;width:100%;height:100%">
+            <circle cx="{{ ovSunX }}" cy="{{ ovSunY }}" r="42" fill="{{ ovSunC }}" opacity="0.15"></circle>
+            <circle cx="{{ ovSunX }}" cy="{{ ovSunY }}" r="26" fill="{{ ovSunC }}" opacity="0.9"></circle>
+            <path d="{{ ovFarD }}" fill="rgba(0,240,255,.10)"></path>
+            <path d="{{ ovMainD }}" fill="#070C19" stroke="rgba(0,240,255,.6)" stroke-width="1.5"></path>
+            <path d="{{ ovDecoD }}" fill="none" stroke="{{ ovSunC }}" stroke-width="1.2" opacity="0.65"></path>
+            <path d="M0 148 H412 M0 157 H412 M0 166 H412" stroke="rgba(0,240,255,.12)" stroke-width="1" fill="none"></path>
+          </svg>
+          <div style="position:absolute;inset:0;background:linear-gradient(0deg,rgba(10,15,28,.85),transparent 55%)"></div>
+          <div style="position:absolute;top:10px;right:12px;font:600 10px 'Share Tech Mono',monospace;color:rgba(0,240,255,.75);border:1px dashed rgba(0,240,255,.35);padding:2px 6px;border-radius:2px">{{ ovHeroTag }}</div>
+          <div style="position:relative;font:900 20px/1.3 'Noto Sans SC',system-ui;color:#fff;text-shadow:0 0 14px rgba(0,240,255,.55)">{{ ovHeroTitle }}</div>
+          <div style="position:relative;font:500 12.5px 'Noto Sans SC',system-ui;color:#9FB6C9;margin-top:3px">{{ ovHeroSub }}</div>
+          <div style="position:relative;font:10px 'Share Tech Mono',monospace;color:rgba(0,240,255,.6);margin-top:5px">{{ ovHeroHint }}</div>
+        </div>
+        <div style="padding:14px 16px 8px;display:flex;justify-content:space-between;align-items:baseline">
+          <span style="font:900 17px 'Noto Sans SC',system-ui;color:#00F0FF">总览</span>
+          <span style="font:600 10px 'Share Tech Mono',monospace;color:#5E7186">13D · 9.24–10.6 · 5 城</span>
+        </div>
+        <div style="margin:0 14px;background:rgba(255,255,255,.03);border:1px solid rgba(0,240,255,.2);border-radius:4px;overflow:hidden">
+          <sc-for list="{{ days }}" as="d" hint-placeholder-count="13">
+            <div onClick="{{ d.pick }}" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid rgba(0,240,255,.1);cursor:pointer;min-height:48px;background:{{ d.rowBg }}">
+              <div style="flex:none;width:36px;font:700 14px 'Share Tech Mono',monospace;color:{{ d.numFg }}">D{{ d.n }}</div>
+              <div style="flex:none;width:40px">
+                <div style="font:12px 'Share Tech Mono',monospace;color:#5E7186">{{ d.date }}</div>
+                <div style="font:10px 'Noto Sans SC',system-ui;color:#3A4A5C">{{ d.wk }}</div>
+              </div>
+              <div style="flex:1;font:13px/1.45 'Noto Sans SC',system-ui;color:#D8E6F0">{{ d.sum }}</div>
+              <sc-if value="{{ d.bag }}" hint-placeholder-val="{{ false }}"><div style="flex:none;font:700 9px 'Share Tech Mono',monospace;background:rgba(255,46,136,.12);color:#FF2E88;border:1px solid rgba(255,46,136,.4);padding:2px 6px;border-radius:2px">行李日</div></sc-if>
+              <div style="flex:none;font:13px;color:#3A4A5C">›</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ===== 待办 ===== -->
+    <sc-if value="{{ isTodo }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:6px 0 16px">
+        <div style="padding:12px 16px 10px;font:900 17px 'Noto Sans SC',system-ui;color:#00F0FF">待办</div>
+        <div style="display:flex;gap:0;padding:0 14px 10px">
+          <div style="flex:1;display:flex;background:rgba(0,240,255,.05);border:1px solid rgba(0,240,255,.2);border-radius:3px;padding:3px">
+            <sc-for list="{{ todoSecs }}" as="ts" hint-placeholder-count="3">
+              <div onClick="{{ ts.click }}" style="flex:1;display:flex;align-items:center;justify-content:center;font:600 13.5px 'Noto Sans SC',system-ui;border-radius:2px;background:{{ ts.bg }};color:{{ ts.fg }};cursor:pointer;min-height:40px;box-shadow:{{ ts.sh }}">{{ ts.label }}</div>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- 今日待办 -->
+        <sc-if value="{{ secDaily }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;gap:6px;overflow-x:auto;padding:2px 14px 8px">
+            <sc-for list="{{ todoDays }}" as="d" hint-placeholder-count="13">
+              <div onClick="{{ d.pick }}" style="flex:none;font:700 12px 'Share Tech Mono',monospace;padding:9px 11px;border-radius:3px;border:1px solid {{ d.bd }};background:{{ d.bg }};color:{{ d.fg }};cursor:pointer;min-height:40px">D{{ d.n }}</div>
+            </sc-for>
+          </div>
+          <sc-if value="{{ dailyEmpty }}" hint-placeholder-val="{{ false }}">
+            <div style="margin:8px 14px;border-radius:4px;background:rgba(255,255,255,.03);border:1px dashed rgba(0,240,255,.25);padding:24px 14px;text-align:center">
+              <div style="font:600 13.5px 'Noto Sans SC',system-ui;color:#9FB6C9">{{ dailyEmptyTitle }}</div>
+              <div style="font:11.5px 'Noto Sans SC',system-ui;color:#5E7186;margin-top:4px">{{ dailyEmptySub }}</div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ dailyHas }}" hint-placeholder-val="{{ true }}">
+            <div style="padding:0 16px 6px;font:11px 'Share Tech Mono',monospace;color:#5E7186">{{ dailyCount }}</div>
+            <div style="margin:0 14px;background:rgba(255,255,255,.03);border:1px solid rgba(0,240,255,.2);border-radius:4px;overflow:hidden">
+              <sc-for list="{{ dailyTodos }}" as="t" hint-placeholder-count="6">
+                <div onClick="{{ t.toggle }}" style="display:flex;align-items:center;gap:11px;padding:13px 14px;border-bottom:1px solid rgba(0,240,255,.1);cursor:pointer;min-height:48px">
+                  <div style="flex:none;width:20px;height:20px;border:1.5px solid {{ t.boxBd }};border-radius:3px;background:{{ t.boxBg }};display:flex;align-items:center;justify-content:center;color:#0A0F1C;font:700 13px system-ui;box-shadow:{{ t.boxGlow }}">{{ t.mark }}</div>
+                  <div style="flex:1;font:13.5px/1.45 'Noto Sans SC',system-ui;color:{{ t.fg }};text-decoration:{{ t.deco }}">{{ t.text }}</div>
+                  <sc-if value="{{ t.isGen }}" hint-placeholder-val="{{ false }}"><div style="flex:none;font:700 9px 'Share Tech Mono',monospace;color:#00F0FF;background:rgba(0,240,255,.08);border:1px solid rgba(0,240,255,.3);padding:2px 6px;border-radius:2px">每日</div></sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+        </sc-if>
+
+        <!-- 行程待办 -->
+        <sc-if value="{{ secTrip }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:4px 16px 6px;font:700 10px 'Share Tech Mono',monospace;color:#FF2E88">旅行前 · 票务与确认</div>
+          <div style="margin:0 14px;background:rgba(255,255,255,.03);border:1px solid rgba(0,240,255,.2);border-radius:4px;overflow:hidden">
+            <sc-for list="{{ preTodos }}" as="t" hint-placeholder-count="7">
+              <div onClick="{{ t.toggle }}" style="display:flex;align-items:center;gap:11px;padding:13px 14px;border-bottom:1px solid rgba(0,240,255,.1);cursor:pointer;min-height:48px">
+                <div style="flex:none;width:20px;height:20px;border:1.5px solid {{ t.boxBd }};border-radius:3px;background:{{ t.boxBg }};display:flex;align-items:center;justify-content:center;color:#0A0F1C;font:700 13px system-ui;box-shadow:{{ t.boxGlow }}">{{ t.mark }}</div>
+                <div style="flex:1;font:13.5px/1.45 'Noto Sans SC',system-ui;color:{{ t.fg }};text-decoration:{{ t.deco }}">{{ t.text }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="padding:14px 16px 6px;font:700 10px 'Share Tech Mono',monospace;color:#FF2E88">旅行前 · 餐厅订位</div>
+          <div style="margin:0 14px;background:rgba(255,255,255,.03);border:1px solid rgba(0,240,255,.2);border-radius:4px;overflow:hidden">
+            <sc-for list="{{ bookTodos }}" as="t" hint-placeholder-count="8">
+              <div onClick="{{ t.toggle }}" style="display:flex;align-items:center;gap:11px;padding:13px 14px;border-bottom:1px solid rgba(0,240,255,.1);cursor:pointer;min-height:48px">
+                <div style="flex:none;width:20px;height:20px;border:1.5px solid {{ t.boxBd }};border-radius:3px;background:{{ t.boxBg }};display:flex;align-items:center;justify-content:center;color:#0A0F1C;font:700 13px system-ui;box-shadow:{{ t.boxGlow }}">{{ t.mark }}</div>
+                <div style="flex:1;font:13.5px/1.45 'Noto Sans SC',system-ui;color:{{ t.fg }};text-decoration:{{ t.deco }}">{{ t.text }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="padding:8px 16px 0;font:11px/1.6 'Noto Sans SC',system-ui;color:#3A4A5C">无需订位：Bonci / Supplizio / Giolitti / Trapizzino / Inn Bufalito / La Cantinaccia / Mario（只收现金）/ Vinaio / Nerbone / Attanasio</div>
+          <div style="padding:14px 16px 6px;font:700 10px 'Share Tech Mono',monospace;color:#FF2E88">旅行中 · 每日通用（模板）</div>
+          <div style="margin:0 14px;background:rgba(255,255,255,.03);border:1px solid rgba(0,240,255,.2);border-radius:4px;overflow:hidden">
+            <sc-for list="{{ genTodos }}" as="t" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:11px;padding:13px 14px;border-bottom:1px solid rgba(0,240,255,.1);min-height:48px">
+                <div style="flex:none;width:20px;height:20px;border:1.5px dashed rgba(0,240,255,.35);border-radius:3px"></div>
+                <div style="flex:1;font:13.5px/1.45 'Noto Sans SC',system-ui;color:#9FB6C9">{{ t.text }}</div>
+                <div style="flex:none;font:700 9px 'Share Tech Mono',monospace;color:#00F0FF;background:rgba(0,240,255,.08);border:1px solid rgba(0,240,255,.3);padding:2px 6px;border-radius:2px">每日</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="padding:8px 16px 0;font:10.5px/1.5 'Share Tech Mono',monospace;color:#3A4A5C">每日通用项已按天生成进「今日待办」，此处只管理模板</div>
+        </sc-if>
+
+        <!-- 应急信息 -->
+        <sc-if value="{{ secEmg }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 16px 8px">
+            <div style="font:700 10px 'Share Tech Mono',monospace;color:#5E7186">按日期查看 · {{ emgScope }}</div>
+            <div style="display:flex;gap:6px">
+              <button onClick="{{ emgPrev }}" style="font:700 13px 'Share Tech Mono',monospace;border:1px solid rgba(0,240,255,.3);background:rgba(0,240,255,.06);color:#00F0FF;border-radius:3px;padding:6px 13px;cursor:pointer;min-height:36px">‹</button>
+              <button onClick="{{ emgNext }}" style="font:700 13px 'Share Tech Mono',monospace;border:1px solid rgba(0,240,255,.3);background:rgba(0,240,255,.06);color:#00F0FF;border-radius:3px;padding:6px 13px;cursor:pointer;min-height:36px">›</button>
+            </div>
+          </div>
+          <div style="margin:0 14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,46,136,.4);border-radius:4px;overflow:hidden;box-shadow:0 0 16px rgba(255,46,136,.12)">
+            <div style="background:rgba(255,46,136,.1);color:#FF2E88;font:700 13.5px 'Noto Sans SC',system-ui;padding:10px 14px;border-bottom:1px solid rgba(255,46,136,.3)">意大利 · 全国通用</div>
+            <div style="padding:11px 14px;display:flex;flex-direction:column;gap:10px">
+              <sc-for list="{{ emgNums }}" as="e" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div style="flex:1;font:13px 'Noto Sans SC',system-ui;color:#D8E6F0">{{ e.label }}</div>
+                  <a href="{{ e.telHref }}" style="font:700 16px 'Share Tech Mono',monospace;color:#FF2E88;text-shadow:0 0 8px rgba(255,46,136,.5);text-decoration:none">{{ e.num }}</a>
+                  <button onClick="{{ e.copy }}" style="flex:none;font:600 12px 'Noto Sans SC',system-ui;border:1px solid rgba(0,240,255,.35);background:rgba(0,240,255,.07);color:#00F0FF;border-radius:3px;padding:8px 13px;cursor:pointer;min-height:36px">复制</button>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="margin:10px 14px 0;background:rgba(255,255,255,.03);border:1px solid rgba(0,240,255,.2);border-radius:4px;padding:12px 14px;display:flex;flex-direction:column;gap:10px">
+            <div style="font:700 10px 'Share Tech Mono',monospace;color:#FF2E88">领事保护</div>
+            <sc-for list="{{ emgCons }}" as="e" hint-placeholder-count="2">
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="flex:1;font:12.5px/1.45 'Noto Sans SC',system-ui;color:#D8E6F0">{{ e.label }}</div>
+                <a href="{{ e.telHref }}" style="font:700 12px 'Share Tech Mono',monospace;color:#9FB6C9;text-decoration:none">{{ e.num }}</a>
+                <button onClick="{{ e.copy }}" style="flex:none;font:600 12px 'Noto Sans SC',system-ui;border:1px solid rgba(0,240,255,.35);background:rgba(0,240,255,.07);color:#00F0FF;border-radius:3px;padding:8px 13px;cursor:pointer;min-height:36px">复制</button>
+              </div>
+            </sc-for>
+          </div>
+          <div style="margin:10px 14px 0;background:rgba(255,255,255,.03);border:1px solid rgba(0,240,255,.2);border-radius:4px;padding:12px 14px">
+            <div style="font:700 10px 'Share Tech Mono',monospace;color:#FF2E88;margin-bottom:6px">当日应急落点 · {{ emgStayLabel }}</div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="flex:1;font:12.5px/1.5 'Noto Sans SC',system-ui;color:#D8E6F0">{{ emgStayLine }}</div>
+              <button onClick="{{ copyEmgStay }}" style="flex:none;font:600 12px 'Noto Sans SC',system-ui;border:1px solid rgba(0,240,255,.35);background:rgba(0,240,255,.07);color:#00F0FF;border-radius:3px;padding:8px 13px;cursor:pointer;min-height:36px">复制</button>
+            </div>
+          </div>
+          <div style="padding:10px 18px 0;font:10.5px/1.6 'Share Tech Mono',monospace;color:#3A4A5C">本次行程 13 天均在意大利，通用号码各日一致；跨国行程时随所选日期切换当地信息</div>
+        </sc-if>
+      </div>
+    </sc-if>
+  </div>
+
+  <!-- Tab bar -->
+  <div style="flex:none;display:flex;border-top:1px solid rgba(0,240,255,.3);background:rgba(10,15,28,.98);padding-bottom:env(safe-area-inset-bottom)">
+    <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="3">
+      <div onClick="{{ t.click }}" style="flex:1;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;border-top:2px solid {{ t.topBd }}">
+        <div style="width:17px;height:17px;border:1.5px solid {{ t.fg }};border-radius:{{ t.iconR }};background:{{ t.iconBg }};box-shadow:{{ t.glow }}"></div>
+        <div style="font:{{ t.weight }} 11.5px 'Noto Sans SC',system-ui;color:{{ t.fg }}">{{ t.label }}</div>
+      </div>
+    </sc-for>
+  </div>
+
+  <!-- Bottom sheet -->
+  <div style="position:absolute;inset:0;z-index:30;pointer-events:{{ sheetPe }}">
+    <div onClick="{{ closeSheet }}" style="position:absolute;inset:0;background:rgba(2,4,10,.55);opacity:{{ scrimOp }};transition:opacity .26s"></div>
+    <div onTouchStart="{{ shS }}" onTouchEnd="{{ shE }}" style="position:absolute;left:0;right:0;bottom:0;background:#0D1424;border:1px solid rgba(0,240,255,.4);border-bottom:none;border-radius:10px 10px 0 0;box-shadow:0 0 30px rgba(0,240,255,.15);transform:translateY({{ sheetY }});transition:transform .26s cubic-bezier(.32,.9,.35,1);padding:10px 16px calc(20px + env(safe-area-inset-bottom))">
+      <div onClick="{{ closeSheet }}" style="width:44px;height:4px;background:rgba(0,240,255,.4);border-radius:2px;margin:0 auto 12px;cursor:pointer"></div>
+      <div style="font:700 11px 'Share Tech Mono',monospace;color:#FF2E88">{{ sheetCtx }}</div>
+      <div style="font:900 17px/1.35 'Noto Sans SC',system-ui;color:#fff;margin-top:3px">{{ sheetTitle }}</div>
+      <sc-if value="{{ sheetHasAddr }}" hint-placeholder-val="{{ true }}">
+        <div style="font:13px/1.55 'Noto Sans SC',system-ui;color:#9FB6C9;margin-top:8px">{{ sheetAddr }}</div>
+      </sc-if>
+      <sc-if value="{{ sheetHasNote }}" hint-placeholder-val="{{ true }}">
+        <div style="font:12px/1.55 'Noto Sans SC',system-ui;color:#D8E6F0;background:rgba(0,240,255,.06);border:1px solid rgba(0,240,255,.2);border-radius:3px;padding:8px 10px;margin-top:8px">凭证 · {{ sheetNote }}</div>
+      </sc-if>
+      <sc-if value="{{ sheetHasTel }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
+          <div style="font:700 10px 'Share Tech Mono',monospace;color:#FF2E88">TEL</div>
+          <a href="{{ sheetTelHref }}" style="flex:1;font:700 13px 'Share Tech Mono',monospace;color:#00F0FF;text-decoration:none">{{ sheetTel }}</a>
+          <button onClick="{{ copySheetTel }}" style="flex:none;font:600 12px 'Noto Sans SC',system-ui;border:1px solid rgba(0,240,255,.35);background:rgba(0,240,255,.07);color:#00F0FF;border-radius:3px;padding:8px 13px;cursor:pointer;min-height:36px">复制</button>
+        </div>
+      </sc-if>
+      <div style="display:flex;gap:10px;margin-top:14px">
+        <button onClick="{{ copySheetAddr }}" style="flex:1;min-height:48px;font:700 14px 'Noto Sans SC',system-ui;background:#00F0FF;color:#05070D;border:none;border-radius:4px;cursor:pointer;box-shadow:0 0 18px rgba(0,240,255,.4)">复制地址</button>
+        <button onClick="{{ openMap }}" style="flex:1;min-height:48px;font:700 14px 'Noto Sans SC',system-ui;background:{{ mapBg }};color:{{ mapFg }};border:1px solid {{ mapBd }};border-radius:4px;cursor:{{ mapCur }}">{{ mapLabel }}</button>
+      </div>
+      <div style="font:11px/1.55 'Noto Sans SC',system-ui;color:#5E7186;margin-top:10px">离线可用：地址 / 凭证 / 电话 · 需联网：在线地图导航</div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <sc-if value="{{ toastOn }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;left:50%;bottom:88px;transform:translateX(-50%);z-index:40;background:rgba(0,240,255,.12);border:1px solid rgba(0,240,255,.5);backdrop-filter:blur(6px);color:#00F0FF;font:600 12px 'Noto Sans SC',system-ui;padding:9px 15px;border-radius:3px;max-width:330px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 0 16px rgba(0,240,255,.25)">{{ toast }}</div>
+  </sc-if>
+</div>
+</div>
+
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#0A0F1C"></rect><circle cx="62" cy="40" r="13" fill="#FF2E88" opacity="0.9"></circle><path d="M22 70 L40 48 L54 62 L66 52 L80 70 Z" fill="none" stroke="#00F0FF" stroke-width="3"></path><path d="M24 78 H78" stroke="#00F0FF" stroke-width="2" opacity="0.4"></path></svg></template></x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:412,&quot;height&quot;:915},&quot;simNow&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;auto&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;演示&quot;,&quot;description&quot;:&quot;模拟当前时间，如 9.28 11:30；auto = 真实时间&quot;}}">
+class Component extends DCLogic {
+  state = { view:'today', day:1, dayInit:false, sheet:null, sheetOpen:false, altIdx:-1, toast:'', stayOpen:true,
+    todoSec:'daily', todoDay:0, slideN:0, slideDir:'L', online:true, doneDaily:{}, donePre:{}, doneBook:{} };
+
+  Y=2026; LSK='zouzhe_italy_2026_v1';
+
+  trip(){
+    if(this._trip) return this._trip;
+    const N=(t,title,sub,x)=>Object.assign({t,title,sub:sub||''},x||{});
+    const days=[
+      {date:'9.24',wk:'四',city:'罗马',sum:'北京飞罗马 · 入住休整',route:'北京 T3 → 罗马 FCO → 特米尼',
+       stay:{name:'Hotel Domus Praetoria',addr:'Via Milazzo 42（米拉佐街 42 号 · 特米尼站旁）, Roma',tel:'+39 06 4575 3570'},
+       dinner:{name:'酒店附近随意 · 简餐',info:'倒时差早睡，不安排正餐'},
+       daily:['护照/现金/电子设备随身（永远）','落地激活 eSIM','机场快线购票约 14 欧/人（或出租车 55 欧固定价）','入住存护照复印件'],
+       nodes:[
+        N('13:15','CA939 北京首都起飞','提前 3 小时到 T3 值机'),
+        N('18:30','降落罗马菲乌米奇诺','入境+取行李约 1–1.5 小时',{tag:'FCO'}),
+        N('20:00','机场快线 → 特米尼','跟"火车 Treni"指示到 T3 火车站 · 每 15 分钟一班 · 32 分钟',{alt:'太累则改机场正规出租车：市中心固定价 55 欧/车，约 45 分钟',note:'莱昂纳多机场快线 · 约 14 欧/人'}),
+        N('21:00','酒店入住','马尔萨拉街出口出站步行 3 分钟',{addr:'Hotel Domus Praetoria, Via Milazzo 42, Roma',tel:'+39 06 4575 3570'}),
+        N('21:30','附近简单晚餐 · 早睡','倒时差为后面 12 天养精蓄锐')]},
+      {date:'9.25',wk:'五',city:'罗马',sum:'梵蒂冈日 · 圣彼得登顶+博物馆',route:'特米尼 ⇄ 梵蒂冈（地铁 A 线）',
+       stay:{name:'Hotel Domus Praetoria',addr:'Via Milazzo 42, Roma',tel:'+39 06 4575 3570'},
+       dinner:{name:'RIONE XIV Bistrot · 19:00 首轮',info:'博尔戈皮奥街 21 号 · 订位 +39 06 4568 2897',tel:'+39 06 4568 2897'},
+       daily:['6:10 出门（早高峰前）','圣彼得 6:45 前到安检口','梵蒂冈博物馆 13:00 门票二维码截图','RIONE XIV 订位确认 19:00'],
+       nodes:[
+        N('6:10','地铁 A 线 → 奥塔维亚诺','特米尼 6 站 · 出站步行 8 分钟',{alt:'地铁故障或拥挤 → 出租车约 15 分钟直达'}),
+        N('6:45','圣彼得广场安检排队',''),
+        N('7:00','圣彼得大教堂 + 登顶','电梯+320 级台阶 · 入口在教堂右侧',{tag:'🎫',addr:'Piazza San Pietro, Città del Vaticano'}),
+        N('11:00','Bonci 切块披萨','按重计价剪刀剪块 · 推荐土豆香肠/炸茄子罗勒+炸牛肉丸',{addr:'Via della Meloria 43, Roma'}),
+        N('13:00','梵蒂冈博物馆','',{tag:'🎫',addr:'Viale Vaticano, Città del Vaticano',note:'门票二维码提前截图'}),
+        N('16:30','圣天使堡外观','沿协和大道步行 15 分钟'),
+        N('18:30','圣天使桥黄昏','拍完步行 5 分钟进博尔戈皮奥老街'),
+        N('19:00','RIONE XIV Bistrot 晚餐','家庭经营罗马菜 · 手工意面/千层面招牌',{addr:'Borgo Pio 21, Roma',tel:'+39 06 4568 2897',note:'订位 19:00 首轮座'}),
+        N('20:30','地铁 A 线回特米尼','奥塔维亚诺站上车',{alt:'不想走 → 皮亚广场站 40/64 路公交'})]},
+      {date:'9.26',wk:'六',city:'罗马',sum:'市区七点连线 + 博尔盖塞',route:'教堂群 → 台阶 → 博尔盖塞 → 平丘 → 特莱维',
+       stay:{name:'Hotel Domus Praetoria',addr:'Via Milazzo 42, Roma',tel:'+39 06 4575 3570'},
+       dinner:{name:'Settimio all\u2019Arancio · 19:30',info:'阿兰乔街 · 需订位 · 点肉类主菜不点意面'},
+       daily:['万神殿 10:00 门票二维码','博尔盖塞 14:35 前到馆寄包（大包必须寄存）','Come \u2019na Vorta 12:15 订位确认','Settimio 19:30 订位确认'],
+       nodes:[
+        N('8:45','40/64 路 → 阿根廷广场','五百人广场乘车约 15 分钟 · 下车步行 7 分钟',{alt:'嫌挤则打车 10 分钟'}),
+        N('9:15','圣依纳爵堂','免费 · 假穹顶+错觉天顶画 · 堂内有镜子拍天花板'),
+        N('10:00','万神殿','10–12 点光柱角度最低最出片',{tag:'🎫',addr:'Piazza della Rotonda, Roma',note:'Musei Italiani 平台购票约 5 欧 · 10:00 时段'}),
+        N('11:00','纳沃纳广场','四河喷泉 · 街头画家'),
+        N('11:50','Supplizio 炸饭团','精品 suppl\u00EC · 买 1–2 个分食垫肚子',{addr:'Via dei Banchi Vecchi 143, Roma'}),
+        N('12:15','Come \u2019na Vorta 午餐','手工意面 · 点卡邦尼/阿马特里恰纳',{addr:'万神殿店 · Roma',note:'已订位 · 开餐即到'}),
+        N('13:10','Giolitti 冰淇淋','1900 年老店 · 先收银台付款再凭小票选口味',{addr:'Via degli Uffici del Vicario 40, Roma'}),
+        N('13:30','西班牙台阶','下午顺光拍照 · 不久留'),
+        N('15:00','博尔盖塞美术馆','严格 2 小时清场 · 14:35 到馆寄包',{tag:'🎫',addr:'Piazzale Scipione Borghese 5, Roma'}),
+        N('18:30','平丘观景台日落','18:55 日落 · 俯瞰人民广场与圣彼得穹顶剪影'),
+        N('19:30','Settimio all\u2019Arancio 晚餐','老派罗马家常菜 · 牛肉丸/炖菜/柠檬扁桃仁挞',{addr:'Via dell\u2019Arancio 50, Roma',note:'需订位'}),
+        N('21:00','特莱维喷泉夜景','22:00 后人更少 · 巴贝里尼站 A 线回')]},
+      {date:'9.27',wk:'日',city:'罗马',sum:'古罗马日 · 斗兽场日落',route:'真理之口 → 古罗马广场 → 斗兽场',tip:'预报有雨则整日与 9.26 对调（博尔盖塞在室内）',
+       stay:{name:'Hotel Domus Praetoria',addr:'Via Milazzo 42, Roma',tel:'+39 06 4575 3570'},
+       dinner:{name:'Da Felice a Testaccio · 20:00',info:'⚠ 提前数周订满 · 兜底 Trattoria Da Danilo'},
+       daily:['斗兽场 16:00 门票（地下版则 16:00–16:30 跟队）','真理之口排队预留 20–40 分钟','Da Felice 订位确认（或 Da Danilo 兜底）','雨备方案：与 9.26 对调'],
+       nodes:[
+        N('11:00','Trapizzino 午餐','特米尼中央市场店 · 口袋饼夹炖牛尾/炖鸡 · 吃饱扛 6 小时'),
+        N('11:45','地铁 B 线 → 马西莫竞技场','往劳伦蒂纳方向 3 站'),
+        N('12:00','真理之口','出站步行 5 分钟 · 周日人多',{addr:'Piazza della Bocca della Verit\u00E0 18, Roma'}),
+        N('13:00','维托里亚诺 · 免费平台','无名战士墓+广场全景约 15 分钟 · 玻璃电梯今天不上'),
+        N('13:15','图拉真广场沿街俯瞰','纪念堂旁 · 外观即可'),
+        N('13:35','古罗马广场 + 帕拉丁诺','帝国广场大道步行 10 分钟 · 山顶俯瞰是机位',{tag:'🎫'}),
+        N('16:00','斗兽场下午场','深度逛看台各层与竞技场地板 · 17:45 切拍照模式',{tag:'🎫',addr:'Piazza del Colosseo 1, Roma',note:'8.28 抢 16:00 时段 · 地下版优先 · 秒没转竞技场版'}),
+        N('18:50','场外日落全景','君士坦丁凯旋门+蓝调时刻 · 日落约 18:55'),
+        N('20:00','Da Felice a Testaccio 晚餐','桌边现拌 cacio e pepe · 配烤羊排/炖牛尾',{addr:'Via Mastro Giorgio 29, Roma',note:'⚠ 提前数周订满 · 立即官网订位',alt:'订不上兜底：Trattoria Da Danilo（佩特拉尔卡街 · 离酒店步行 10 分钟 · 芝士轮现拌卡邦尼）'}),
+        N('21:45','回特米尼','打车或金字塔站 B 线 · 末班 23:30 后无压力')]},
+      {date:'9.28',wk:'一',city:'索伦托',sum:'罗马→庞贝→索伦托',route:'罗马 → 那不勒斯 → 庞贝 → 索伦托',bag:true,bagLine:'携全部行李移动 · 9:18 那不勒斯站内寄存',
+       stay:{name:'Maison Tofani',addr:'Via S. Cesareo 34（圣切萨雷奥街 34 号）, Sorrento',tel:'+39 081 878 4020'},
+       dinner:{name:'O\u2019Parrucchiano La Favorita · 20:00',info:'科尔索意大利街 71 号 · 必点茄汁烤 cannelloni',tel:'+39 081 878 4020'},
+       deposit:{tag:'寄存中',line:'那不勒斯中央站 Deposito Bagagli · 2 件 · 约 6 欧/件',sub:'9:30 存 → 16:25 取（营业 9:30–16:30）· 取件出示单据'},
+       daily:['7:15 退房 · 推箱进特米尼','特米尼买水+干粮（庞贝不吃午饭）','那不勒斯站存 2 箱','庞贝门票二维码截图','出园前确认返程班次','16:25 取箱 · 17:26 快线','O\u2019Parrucchiano 订位确认'],
+       nodes:[
+        N('7:15','退房 · 推箱进特米尼','步行 3 分钟'),
+        N('8:05','红箭 9503 发车','大件放车厢头尾行李架',{tag:'🚄',addr:'Roma Termini, Via Giovanni Giolitti 40, Roma',note:'Trenitalia · 提前 20 分钟到站台'}),
+        N('9:18','到那不勒斯 · 存 2 箱','跟"行李寄存 Deposito Bagagli"指示 · 背包随身',{tag:'🧳',addr:'Napoli Centrale, Piazza Garibaldi, Napoli',note:'约 6 欧/件 · 取件出示单据'}),
+        N('9:40','环维苏威线 → 庞贝','地下层加里波第站（同一栋楼）· 每 30 分钟一班'),
+        N('10:30','到庞贝遗址站','站牌 Pompei Scavi'),
+        N('10:45','庞贝 · 海门进园','4 小时精华 · 带干粮+水+帽子防晒',{tag:'🎫',addr:'Porta Marina, Via Villa dei Misteri 2, Pompei',note:'门票约 18 欧 · 11:00 前时段 · 出示二维码',alt:'精华路线：广场+粮仓 → 广场浴场+悲剧诗人之家 → 农牧神之家+维提之家 → 丰饶大道东行 → 斯塔比亚浴场+大剧场 → 圆形剧场+逃亡者花园'}),
+        N('15:00','东侧出口出园','穿现代小镇步行 20 分钟回车站 · 顺路买片披萨'),
+        N('15:45','小火车返程','Pompei Scavi 站',{alt:'误点无碍：普通车每 30 分钟一班开到 21:30 后，当天必达'}),
+        N('16:25','加里波第取箱','排队 10–15 分钟无碍 · 再下回站台',{tag:'🧳'}),
+        N('17:26','坎帕尼亚快线 → 索伦托','约 1 小时',{tag:'🚄',addr:'Napoli Garibaldi（中央站地下层）',note:'Campania Express'}),
+        N('18:35','到索伦托 · 入住','塔索广场进圣切萨雷奥步行街 7 分钟 · 石板路稍颠可推',{addr:'Maison Tofani, Via S. Cesareo 34, Sorrento',tel:'+39 081 878 4020'}),
+        N('20:00','O\u2019Parrucchiano 晚餐','150 年柠檬园花房老店 · 必点茄汁烤 cannelloni',{addr:'Corso Italia 71, Sorrento',tel:'+39 081 878 4020',note:'需订位'})]},
+      {date:'9.29',wk:'二',city:'卡普里',sum:'卡普里岛 · 蓝洞+索拉罗山',route:'索伦托 ⇄ 卡普里（渡轮）',tip:'海况差渡轮全停 → 本日与 9.30 对调',
+       stay:{name:'Maison Tofani',addr:'Via S. Cesareo 34, Sorrento',tel:'+39 081 878 4020'},
+       dinner:{name:'Inn Bufalito · 20:00',info:'民宿步行 3 分钟 · 水牛马苏里拉轻食 · 随到随吃'},
+       daily:['去程船票已买（前一天线上）','到港先买回程票（17:00–18:00 班次）','看蓝洞开放公告','带防晒+现金零钱','Da Paolino 订位确认 13:15'],
+       nodes:[
+        N('7:15','步行下小码头','塔索广场沿路易吉·德·马约街下坡 15 分钟',{alt:'不想走坡 → 市政花园乘电梯下海边再走 5 分钟'}),
+        N('7:45','最早班渡轮 → 卡普里','约 25 分钟 · 去程票提前一天线上买',{tag:'⛴'}),
+        N('8:30','到港：先买回程票','选 17:00–18:00 班次 · 再看蓝洞开放公告'),
+        N('9:00','蓝洞','码头快艇+小划艇换乘 · 约 2 小时往返 · 唯一海上看崖视角',{alt:'陆路版：公交上安纳卡普里转蓝洞线直达洞口 · 省 34 欧/两人免换乘晃动 · 顺序改"蓝洞→回安纳卡普里上山" · 当天按海况现场二选一；蓝洞关闭则改圣米凯莱别墅'}),
+        N('11:30','索拉罗山缆椅登顶','大码头公交至安纳卡普里 · 单人吊椅 12 分钟俯瞰全岛'),
+        N('13:15','Da Paolino 午餐','柠檬树穹顶名店 · 招牌柠檬酱卡普里 ravioli',{addr:'Palazzo a Mare, Capri',tel:'+39 081 837 6102',note:'订位 booking@paolinocapri.com · 人均 100 欧+'}),
+        N('14:45','缆车上卡普里镇','5 分钟 · 小广场咖啡逛巷子'),
+        N('15:30','奥古斯都花园','法拉廖尼三巨岩+克虏伯之字小道机位 · 20–30 分钟',{addr:'Via Matteotti 2, Capri'}),
+        N('17:00','渡轮返索伦托','按回程票班次 · 电梯/步行上坡回民宿',{tag:'⛴'}),
+        N('20:00','Inn Bufalito 晚餐','轻食向 · 无需订位随到随吃',{addr:'Vico I Fuoro 21, Sorrento'})]},
+      {date:'9.30',wk:'三',city:'索伦托',sum:'跳水+休整 · 渔村日落',route:'索伦托角 → 镇区 → 大海滩渔村',tip:'野生场地无救生员 · 浪大只游不跳',
+       stay:{name:'Maison Tofani',addr:'Via S. Cesareo 34, Sorrento',tel:'+39 081 878 4020'},
+       dinner:{name:'Da Emilia · 19:00',info:'大海滩渔村 1947 年水边老店 · 订水边位'},
+       daily:['带涉水鞋（岩石滑+有海胆）+速干衣','先看落点水深 · 只从有本地人跳的位置跳','Da Emilia 订位确认 19:00','晚上收拾行李（明早 8:15 退房）'],
+       nodes:[
+        N('9:00','公交 → 索伦托角','塔索广场乘往马萨卢布伦塞方向约 10 分钟 · 小路步行 15–20 分钟下海角',{alt:'打车 10 分钟到路口'}),
+        N('9:30','乔万娜王后浴场 · 跳水','天然岩拱海水潭+罗马别墅遗迹 · 上午光穿岩拱最好看',{note:'⚠ 无救生员：看清落点水深 · 带涉水鞋 · 浪大只游不跳'}),
+        N('12:00','收拾返程回镇',''),
+        N('12:45','La Cantinaccia del Popolo 午餐','现切火腿+平底锅番茄意面 · 不接受订位开门即到',{addr:'Vico Terzo Rota 6, Sorrento'}),
+        N('14:00','回民宿休整','冲洗晾装备午睡 · 步行街柠檬酒试饮/观景台 5 分钟内'),
+        N('18:30','下大海滩渔村','步行约 20 分钟下坡'),
+        N('19:00','Da Emilia 晚餐','桌子在水边 · 海鲜意面+炸物配日落',{addr:'Via Marina Grande 62, Sorrento',note:'需订位 · 订水边位'}),
+        N('20:30','沿岸散步 · 回民宿','上坡步行或打车 · 收拾行李（明早退房）')]},
+      {date:'10.1',wk:'四',city:'佛罗伦萨',sum:'索伦托→那不勒斯→佛罗伦萨',route:'索伦托 → 那不勒斯 → 佛罗伦萨',bag:true,bagLine:'携全部行李移动 · 那不勒斯存箱约 2 小时',
+       stay:{name:'Airbnb 公寓',addr:'Via Cavour 17（卡富尔街 17 号）, Firenze',tel:'+39 345 513 9906'},
+       dinner:{name:'Buca dell\u2019Orafo · 19:30',info:'老桥桥头地窖店 · T 骨按重计价 1 公斤两人分'},
+       deposit:{tag:'寄存中',line:'那不勒斯中央站寄存 · 2 件 · 约 2 小时',sub:'10:40 存 → 12:40 取 · 背包随身'},
+       daily:['8:15 退房 · 推箱回索伦托站','那不勒斯存箱约 2 小时','⚠ 加里波第广场防扒 · 背包前背','12:40 前回站取箱','Buca dell\u2019Orafo 订位确认 19:30'],
+       nodes:[
+        N('8:15','退房 · 推箱回索伦托站','沿步行街 7 分钟'),
+        N('9:26','环维苏威线普通车','无需订座 · 约 70 分钟 · 错过坐下一班 30 分钟后',{tag:'🚃'}),
+        N('10:40','到加里波第 · 存 2 箱','扶梯上中央车站大厅寄存处 · 约 2 小时',{tag:'🧳',addr:'Napoli Centrale, Piazza Garibaldi, Napoli'}),
+        N('10:55','步行 12 分钟去 Da Michele','⚠ 加里波第广场防扒手 · 背包前背'),
+        N('11:10','Da Michele 总店午餐','1870 年老店 · 只卖玛格丽特/玛丽纳拉 · 取号等位出餐飞快',{addr:'Via Cesare Sersale 1, Napoli',note:'11 点错峰 · 排队大概率 15 分钟内'}),
+        N('12:10','Attanasio 贝壳酥','车站旁 · 现烤 sfogliatella 买两个上车当甜点',{addr:'Vico Ferrovia 1, Napoli'}),
+        N('12:40','取行李 · 候车','',{tag:'🧳'}),
+        N('13:20','Italo 9940 发车','',{tag:'🚄',note:'Italo · 大件放行李架'}),
+        N('16:17','到佛罗伦萨新圣母站','站前打车约 10 欧 5 分钟到公寓',{alt:'省则推箱步行 15 分钟：潘扎尼街 → 大教堂广场 → 马尔泰利街 → 卡富尔街 17 号',addr:'Via Cavour 17, Firenze',tel:'+39 345 513 9906'}),
+        N('17:30','圣十字广场 → 老桥','日落约 18:55 · 老桥看日落'),
+        N('19:30','Buca dell\u2019Orafo 晚餐','地窖老店 · 佛罗伦萨 T 骨牛排按重计价',{addr:'Via de\u2019 Girolami 28r, Firenze',note:'需订位 · 约 1 公斤两人分一块'})]},
+      {date:'10.2',wk:'五',city:'佛罗伦萨',sum:'学院+乌菲兹 · 米开朗基罗日落',route:'学院 → 乌菲兹 → 米开朗基罗广场',
+       stay:{name:'Airbnb 公寓',addr:'Via Cavour 17, Firenze',tel:'+39 345 513 9906'},
+       dinner:{name:'Il Latini · 19:45',info:'帕尔凯蒂街 6 号 · 无菜单托斯卡纳套餐 · 需订位'},
+       daily:['学院美术馆 10:45 门票','乌菲兹 14:00 门票','Trattoria Mario 带现金（只收现金）','Il Latini 订位确认 19:45'],
+       nodes:[
+        N('10:45','学院美术馆','大卫像 · 馆小 75 分钟够',{tag:'🎫',addr:'Via Ricasoli 58/60, Firenze'}),
+        N('12:00','Trattoria Mario 午餐','1953 年午市限定 · 拼桌只收现金 · 点炖豆牛肉/ribollita',{addr:'Via Rosina 2r, Firenze',note:'不接受订位 · 12:10 到排队约 20 分钟'}),
+        N('14:00','乌菲兹美术馆','2.5–3 小时',{tag:'🎫',addr:'Piazzale degli Uffizi 6, Firenze'}),
+        N('17:20','All\u2019Antico Vinaio 夹馍','顶流 schiacciata 两人分一个 · 排队超 20 分钟就放弃',{addr:'Via de\u2019 Neri 65r, Firenze'}),
+        N('17:45','上米开朗基罗广场','圣尼科洛台阶约 30 分钟 · 夹馍边走边吃',{alt:'不想爬 → 打车 10 分钟；体力不支留老桥河岸看日落同样出片'}),
+        N('18:50','日落','俯瞰全城'),
+        N('19:45','Il Latini 晚餐','天花板挂满火腿+拼桌热闹 · 收官晚餐',{addr:'Via dei Palchetti 6r, Firenze',note:'需订位'})]},
+      {date:'10.3',wk:'六',city:'威尼斯',sum:'穹顶登顶 · 佛罗伦萨→威尼斯',route:'佛罗伦萨 → 威尼斯 · 晚宿朱代卡岛',bag:true,bagLine:'上午行李存房东处 · 晚到威尼斯站过夜寄存',
+       stay:{name:'Ca\u2019 Ghironda',addr:'Fondamenta San Biagio 784（朱代卡岛圣比亚焦岸）, Venezia',tel:'+39 339 539 6944'},
+       dinner:{name:'cicchetti 酒馆巡游 · 18:00',info:'米塞里科尔迪亚河岸 Al Timon / Vino Vero · 人均 15–25 欧'},
+       deposit:{tag:'过夜寄存',line:'威尼斯圣卢西亚站 · 2 件 · 存到明晚 18:50 取',sub:'上午：佛罗伦萨房东处 · 17:34 到站即存 · 之后两天空手'},
+       daily:['📌 过夜用品装背包（洗漱/一套换洗/充电器）','行李留存房东确认','穹顶 10:30 门票','到威尼斯出站即存 2 箱','买 ACTV 24h 通票并 19:30 首刷','⚠ 告知民宿约 19:45 到店'],
+       nodes:[
+        N('9:30','退房 · 行李存房东处','📌 过夜用品装进背包 · 箱子明晚才取',{tag:'🧳',alt:'房东不便 → 推 15 分钟存新圣母站寄存处约 6 欧/件'}),
+        N('10:30','登圣母百花穹顶','463 级台阶 · 含排队约 1.5 小时 · 杏仁门入口',{tag:'🎫',addr:'Piazza del Duomo, Firenze',note:'10:30 时段票'}),
+        N('12:15','Nerbone 牛肚包','中央市场一楼 1872 年老摊 · lampredotto 蘸原汤+辣酱',{addr:'Mercato Centrale, Via dell\u2019Ariento, Firenze'}),
+        N('13:20','Vivoli 阿芙佳朵','1929 年最老 gelateria · 招牌咖啡 affogato',{addr:'Via dell\u2019Isola delle Stinche 7r, Firenze'}),
+        N('14:15','取行李 → 新圣母站','14:40 进站候车',{tag:'🧳'}),
+        N('15:20','红箭 9422 发车','',{tag:'🚄'}),
+        N('17:34','到威尼斯 · 出站即存箱','站内寄存处 · 过夜存到明晚约 18:50 取',{tag:'🧳',addr:'Venezia Santa Lucia, Fondamenta Santa Lucia, Venezia'}),
+        N('18:00','cicchetti 酒馆巡游','Al Timon / Vino Vero 沿河串吃 · 站河边是标准姿势',{addr:'Fondamenta della Misericordia, Venezia',note:'甜点回程顺路 Dal Mas（车站旁主街）'}),
+        N('19:20','买 ACTV 24h 通票','约 25 欧/人 · 19:30 上 2 号线首刷激活 · 管到明晚 19:30',{note:'2 号线"经朱代卡往圣马可"方向'}),
+        N('19:45','帕兰卡站下船 · 入住','步行 2 分钟 · ⚠ 已提前告知到店时间',{addr:'Ca\u2019 Ghironda, Fondamenta San Biagio 784, Giudecca, Venezia',tel:'+39 339 539 6944'}),
+        N('21:00','朱代卡北岸夜景散步','对岸主岛整片亮灯全景 · 只有住岛上才看得到')]},
+      {date:'10.4',wk:'日',city:'威尼斯',sum:'圣马可+贡多拉 · 威尼斯→米兰',route:'主岛环线 → 大运河巡游 → 米兰',bag:true,bagLine:'全天空手 · 傍晚 18:50 车站取箱直接上车',
+       stay:{name:'Gaffurio Apartments',addr:'Via Gaffurio 4（加富里奥街 4 号）, Milano',tel:'+39 338 679 7169'},
+       dinner:{name:'车站简餐上车 · 19:20',info:'站内买简餐 · 19:48 红箭发车'},
+       deposit:{tag:'待取',line:'圣卢西亚站寄存 · 18:50 取箱直接上车',sub:'📌 17:40 定闹钟 · 18:30 后不等船改步行 25–30 分钟'},
+       daily:['9:00 退房（行李已在车站 · 背包出发）','圣马可大殿 14:00 预约码','📌 17:40 定闹钟','18:30 后不再等船 → 步行去车站','18:50 取行李 · 19:48 发车'],
+       nodes:[
+        N('9:15','2 号线 → 圣扎卡里亚','帕兰卡站上船约 15 分钟 · 下船步行 3 分钟',{tag:'⛴'}),
+        N('9:30','圣马可广场闲逛','钟楼外观 · 总督宫+叹息桥外观（机位在草桥）'),
+        N('9:45','花神咖啡馆 30 分钟','1720 年欧洲最老咖啡馆 · 两人 30 欧场景门票心态',{addr:'Piazza San Marco 57, Venezia'}),
+        N('11:30','贡多拉 30 分钟','官方日间价约 90 欧/船 · 选小运河线路码头 · 无需预约'),
+        N('12:15','Osteria al Portego 午餐','市井小馆 · 墨鱼汁意面/海鲜烩饭按锅出',{addr:'Calle de la Malvasia 6015, Castello, Venezia',note:'需订位（电话即可）'}),
+        N('14:00','圣马可大殿','免排队预约通道 · 金色马赛克+黄金祭坛+二楼露台约 1 小时',{tag:'🎫',addr:'Piazza San Marco 328, Venezia',note:'预约 3 欧 · 14:00 场'}),
+        N('15:00','里亚托桥 + Suso','桥上看大运河 · Suso 开心果榛子酱 gelato 边逛边吃'),
+        N('16:00','卡纳雷吉欧自由深逛','游客密度骤降的本地威尼斯 · 📌 17:40 定闹钟'),
+        N('18:05','1 号线大运河巡游 → 车站','⭐ 整段落在黄金光里 · 日落 18:50 · 抢船头露天位',{tag:'⛴',alt:'容错：18:30 后不再等船 → 步行 25–30 分钟直接去车站 · 保火车永远优先'}),
+        N('18:50','车站取行李','余量约 55 分钟 · 排队超预期则先取件再买吃的',{tag:'🧳'}),
+        N('19:48','红箭 9762 发车','19:20 站内买简餐带上车',{tag:'🚄'}),
+        N('22:15','到米兰中央 · 入住','站前打车起步价 5 分钟 · 大厅"帮拿行李"索小费无视',{addr:'Gaffurio Apartments, Via Gaffurio 4, Milano',tel:'+39 338 679 7169'})]},
+      {date:'10.5',wk:'一',city:'米兰',sum:'大教堂登顶 · 布雷拉 · 运河',route:'大教堂 → 城堡 → 布雷拉 → 纳维利奥运河',
+       stay:{name:'Gaffurio Apartments',addr:'Via Gaffurio 4, Milano',tel:'+39 338 679 7169'},
+       dinner:{name:'El Brellin · 19:45',info:'纳维利奥运河洗衣巷老宅 · 米兰三件套 · 订景观位'},
+       daily:['大教堂屋顶 9:30 电梯票','伴手礼清单：帕玛森/松露酱/意面','退税单据收好（商品随身）','El Brellin 订位确认 19:45','22:00 装箱（明早 8:20 退房）'],
+       nodes:[
+        N('8:30','楼下咖啡馆早餐','意式站吃：咖啡+可颂'),
+        N('9:30','米兰大教堂 + 屋顶平台','地铁 3 号线 4 站到大教堂站 · 内部+屋顶约 2 小时',{tag:'🎫',addr:'Piazza del Duomo, Milano',note:'线上电梯版 · 9:30 场'}),
+        N('11:30','埃马努埃莱二世长廊','穿行 15 分钟 · 金牛脚跟转圈保留节目'),
+        N('11:50','斯福尔扎城堡中庭','免费穿行 · 后门拍公园+和平门纵深一张 · 不深入公园'),
+        N('13:00','布雷拉轻午餐','露台沙拉/帕尼尼 · 人均 15–25 欧 · 给晚上留肚子',{alt:'选做：布雷拉画廊美术馆（门票+约 1.5 小时 · 进馆则压缩购物段）'}),
+        N('15:30','时尚四边形（弹性）','有奢侈品目标才去 · 退税比国内划算 · 没有就跳过'),
+        N('16:15','伴手礼采购','文艺复兴百货顶层食品馆（露台平视尖顶）+ Peck 老牌食材店'),
+        N('17:30','回公寓放采购','3 号线 4 站回中央车站 · 歇脚 15 分钟'),
+        N('18:30','纳维利奥运河开胃酒','2 号线直达热那亚门 · 沿河露台看夜幕',{note:'aperitivo：一杯酒配送小食'}),
+        N('19:45','El Brellin 晚餐','藏红花烩饭+炖牛膝+米兰炸小牛排',{addr:'Vicolo dei Lavandai, Alzaia Naviglio Grande 14, Milano',note:'建议订运河景观位 · 人均 45–60 欧'}),
+        N('22:00','回公寓装箱','2 号线回中央车站 · 明早 8:20 退房')]},
+      {date:'10.6',wk:'二',city:'米兰',sum:'米兰飞北京 · 次日早到',route:'米兰中央 → 马尔彭萨 T1 → 北京',bag:true,bagLine:'携全部行李 · 机场快线直达 T1',
+       stay:null,dinner:null,
+       daily:['8:20 退房','退税商品放随身 · 先海关盖章再安检','托运 2 箱','登机 CA950'],
+       nodes:[
+        N('8:20','退房 · 去中央车站','推箱步行 10 分钟',{alt:'省力则打车 5 分钟'}),
+        N('9:00','Malpensa Express → T1','跟指示上站台 · 每 30 分钟一班 · 52 分钟',{tag:'🚄',note:'约 13 欧',alt:'误一班仍有余量 · 最后兜底出租车约 110 欧固定价'}),
+        N('10:00','T1 值机托运','如有退税：商品随身 · 先海关柜台盖章再安检',{tag:'✈'}),
+        N('13:30','CA950 起飞',''),
+        N('+5:40','次日晨到北京首都','',{sm:1780})]}
+    ];
+    days.forEach((d,i)=>{d.n=i+1;d.nodes.forEach(nd=>{if(nd.sm==null){const m=nd.t.match(/(\d{1,2}):(\d{2})/);nd.sm=m?(+m[1])*60+(+m[2]):0;}});});
+    this._trip=days; return days;
+  }
+  preRaw(){ return [
+    '8.28 抢斗兽场票：9.27 的 16:00 时段 · 地下版优先，秒没转竞技场版',
+    '已作废：补 10.1 坎帕尼亚快线车票（改乘 9:26 普通环维苏威线，无需订座）',
+    '圣马可大殿免排队预约 · 3 欧 · 10.4 的 14:00',
+    '庞贝门票 · 约 18 欧 · 9.28 的 11:00 前时段',
+    '万神殿购票 · Musei Italiani 平台 · 9 月中旬放票后立即买 9.26 的 10:00',
+    '米兰大教堂屋顶票 · 线上电梯版 · 10.5 的 9:30 场',
+    '确认：佛罗伦萨房东 10.3 行李留存',
+    '告知威尼斯民宿：10.3 约 19:45 到店入住',
+    '卡普里渡轮去程票 · 提前一天线上买'
+  ];}
+  bookRaw(){ return [
+    '⚠ Da Felice a Testaccio · 9.27 晚 20:00 · 立即官网订（兜底 Da Danilo）',
+    'O\u2019Parrucchiano · 9.28 晚 20:00 · 科尔索意大利街 71 号',
+    'Da Paolino（卡普里）· 9.29 午 13:15 · +39 081 837 6102 · 顺带确认秋季首日开餐',
+    'Da Emilia · 9.30 晚 19:00 · 订水边位',
+    'RIONE XIV Bistrot · 9.25 晚 19:00 首轮 · +39 06 4568 2897',
+    'Come \u2019na Vorta 万神殿店 · 9.26 午 12:15',
+    'Settimio all\u2019Arancio · 9.26 晚 19:30',
+    'Buca dell\u2019Orafo · 10.1 晚 19:30 · 店小必须订位',
+    'Il Latini · 10.2 晚 19:45 · 热门店提前订',
+    'Osteria al Portego（威尼斯）· 10.4 午 12:15 · 电话订位',
+    'El Brellin（米兰）· 10.5 晚 19:45 · 订运河景观位'
+  ];}
+  genRaw(){ return ['手机 & 充电宝充满电','确认次日路线与车票','护照/现金随身分开存放（永远随身）']; }
+  emgRaw(){ return [
+    {label:'欧盟通用紧急（警察/急救/消防）',num:'112'},
+    {label:'国家警察',num:'113'},
+    {label:'救护车',num:'118'},
+    {label:'消防',num:'115'}
+  ];}
+  consRaw(){ return [
+    {label:'中国驻意大利使馆（罗马）领保',num:'+39 06 9652 4200'},
+    {label:'外交部全球领保热线（24h）',num:'+86 10 12308'}
+  ];}
+
+  artFor(city){
+    const A={
+      '罗马':{s:[318,64,'#FF2E88'],f:'',
+        m:'M-10 200 V120 H24 V104 H38 Q40 80 64 70 Q90 58 116 70 Q139 80 142 104 H156 V120 H186 V134 H208 V120 H222 V90 H232 Q238 78 246 90 Q252 78 260 90 Q266 78 274 90 Q280 78 288 90 Q294 78 302 90 Q308 78 316 90 Q322 78 330 90 H340 V102 H372 V134 H422 V200 Z',
+        d:'M90 58 V46 M84 52 H96 M240 102 a5 6 0 0 0 10 0 M258 102 a5 6 0 0 0 10 0 M276 102 a5 6 0 0 0 10 0 M294 102 a5 6 0 0 0 10 0 M312 102 a5 6 0 0 0 10 0'},
+      '索伦托':{s:[86,58,'#00F0FF'],f:'M50 172 L150 82 L204 112 L228 98 L336 172 Z',
+        m:'M-10 200 V152 H30 V158 H60 V146 H88 V152 H120 V138 H150 V146 H178 V152 H210 V132 H240 V140 H268 V132 H298 V140 H330 V148 H422 V200 Z',
+        d:'M124 144 h8 M154 152 h8 M214 138 h8 M244 146 h8 M272 138 h8 M20 162 q8 5 16 0 q8 5 16 0 M340 158 q8 5 16 0 q8 5 16 0'},
+      '卡普里':{s:[330,60,'#00F0FF'],f:'',
+        m:'M-10 200 V158 H36 L68 92 L100 158 H148 L186 70 L224 158 H266 L292 108 L314 158 H422 V200 Z',
+        d:'M30 166 q9 5 18 0 q9 5 18 0 M250 164 q9 5 18 0 q9 5 18 0 M120 168 q9 5 18 0 M186 84 L186 70 L196 82'},
+      '佛罗伦萨':{s:[300,62,'#FF2E88'],f:'',
+        m:'M-10 200 V130 H28 V78 H44 V130 H62 V118 H148 V114 H160 Q166 86 196 74 V60 H202 V48 H210 V60 H216 V74 Q246 86 252 114 H264 V118 H332 V134 H422 V200 Z',
+        d:'M176 114 Q198 88 206 80 M236 114 Q214 88 206 80 M32 86 h8 M32 98 h8 M32 110 h8'},
+      '威尼斯':{s:[74,56,'#00F0FF'],f:'',
+        m:'M-10 200 V150 H36 V142 H72 V150 H94 V72 L103 54 L112 72 V150 H132 Q147 118 162 150 H176 Q191 118 206 150 H422 V200 Z',
+        d:'M262 158 Q290 168 318 158 M318 158 Q322 150 316 146 M262 158 Q258 152 264 148 M180 164 q9 5 18 0 q9 5 18 0 M330 166 q9 5 18 0 M98 84 h8 M98 98 h8'},
+      '米兰':{s:[206,58,'#FF2E88'],f:'',
+        m:'M-10 200 V142 H84 V122 H104 L112 96 L120 122 H134 L142 88 L150 122 H164 L174 64 L184 122 H196 L206 40 L216 122 H228 L238 64 L248 122 H262 L270 88 L278 122 H292 L300 96 L308 122 H328 V142 H422 V200 Z',
+        d:'M206 40 V28 M200 33 H212 M174 64 V54 M238 64 V54'}
+    };
+    return A[city]||A['罗马'];
+  }
+  rtOf(n){
+    const R={
+      1:{s:[['北京',0],['FCO',1],['特米尼',2],['酒店',3]],m:['CA939','机场快线','步3分']},
+      2:{s:[['特米尼',0],['圣彼得',2],['博物馆',4],['圣天使堡',5],['晚餐',7]],m:['A线6站','步20分','步15分','步5分']},
+      3:{s:[['圣依纳爵',1],['万神殿',2],['台阶',7],['博尔盖塞',8],['平丘',9],['特莱维',11]],m:['步2分','步15分','公园15分','步15分','饭后']},
+      4:{s:[['真理之口',2],['维托里亚诺',3],['古罗马',5],['斗兽场',6],['特斯塔乔',8]],m:['步18分','步10分','步5分','车10分']},
+      5:{s:[['特米尼',1],['存箱',2],['庞贝',5],['取箱',8],['索伦托',10]],m:['红箭9503','环维苏威','小火车','快线']},
+      6:{s:[['索伦托',1],['蓝洞',3],['索拉罗山',4],['卡普里镇',6],['花园',7],['返程',8]],m:['渡轮25分','快艇','公交吊椅','缆车','步10分']},
+      7:{s:[['索伦托角',0],['浴场',1],['午餐',3],['民宿',4],['大海滩',6]],m:['步20分','步行','步行','下坡20分']},
+      8:{s:[['索伦托',1],['存箱',2],['Da Michele',4],['取箱',6],['佛罗伦萨',8]],m:['普通车','步12分','步12分','Italo']},
+      9:{s:[['学院',0],['Mario',1],['乌菲兹',2],['米开朗基罗',4],['Il Latini',6]],m:['步10分','步15分','台阶30分','车10分']},
+      10:{s:[['穹顶',1],['新圣母站',5],['威尼斯',6],['酒馆',7],['朱代卡',9]],m:['取行李','红箭9422','步10分','2号线']},
+      11:{s:[['朱代卡',0],['圣马可',2],['大殿',5],['里亚托',6],['车站',9],['米兰',11]],m:['船15分','步行','步15分','1号线','红箭']},
+      12:{s:[['大教堂',1],['城堡',3],['布雷拉',4],['伴手礼',6],['运河',8]],m:['步15分','步12分','步10分','2号线']},
+      13:{s:[['中央站',1],['马尔彭萨',2],['北京',4]],m:['快线52分','CA950']}
+    };
+    const r=R[n];
+    return {stops:r.s.map(x=>({label:x[0],ni:x[1]})),modes:r.m};
+  }
+  gradOf(city){
+    const g={
+      '罗马':'linear-gradient(160deg,#0B1230 0%,#131A3E 40%,#3B1252 78%,#6E1E4E 110%)',
+      '索伦托':'linear-gradient(160deg,#06172B 0%,#0A2C4C 45%,#0E5A70 85%,#12A0A0 115%)',
+      '卡普里':'linear-gradient(160deg,#051A2E 0%,#0A3050 45%,#0F6E86 85%,#14B8A6 118%)',
+      '佛罗伦萨':'linear-gradient(160deg,#140E2E 0%,#2A1650 50%,#6E1E4E 90%,#B0472E 122%)',
+      '威尼斯':'linear-gradient(160deg,#050D28 0%,#0B1C48 45%,#153A7A 80%,#2E6EB0 115%)',
+      '米兰':'linear-gradient(160deg,#0D0D1E 0%,#1A1436 45%,#3A1252 85%,#7A1E6E 115%)'
+    };
+    return g[city]||g['罗马'];
+  }
+  dateOf(d){ const p=d.date.split('.'); return new Date(this.Y,+p[0]-1,+p[1]); }
+  nowDate(){
+    const p=String(this.props.simNow||'').trim();
+    if(p&&p!=='auto'){ const m=p.match(/(\d{1,2})[.\/-](\d{1,2})[ T]+(\d{1,2}):(\d{2})/); if(m) return new Date(this.Y,+m[1]-1,+m[2],+m[3],+m[4]); }
+    return new Date();
+  }
+  nowInfo(){
+    const days=this.trip(), now=this.nowDate();
+    const d1=this.dateOf(days[0]);
+    const dayN=Math.floor((new Date(now.getFullYear(),now.getMonth(),now.getDate())-d1)/86400000)+1;
+    const nowMin=now.getHours()*60+now.getMinutes();
+    if(dayN<1) return {phase:'pre',dayN:0,nowMin,cd:Math.ceil((d1-now)/86400000)};
+    if(dayN>13) return {phase:'post',dayN:14,nowMin,cd:0};
+    return {phase:'in',dayN,nowMin,cd:0};
+  }
+  stOf(dayIdx,node,ni){
+    const {phase,dayN,nowMin}=this._ni;
+    if(phase==='pre') return 'next';
+    if(phase==='post') return 'past';
+    if(dayIdx<dayN) return 'past';
+    if(dayIdx>dayN) return 'next';
+    const nodes=this.trip()[dayIdx-1].nodes;
+    let cur=-1; nodes.forEach((nd,i)=>{ if(nd.sm<=nowMin) cur=i; });
+    if(ni<cur) return 'past';
+    if(ni===cur) return 'now';
+    return 'next';
+  }
+
+  persist(){ try{ const s=this.state; localStorage.setItem(this.LSK,JSON.stringify({doneDaily:s.doneDaily,donePre:s.donePre,doneBook:s.doneBook,view:s.view,day:s.day,todoSec:s.todoSec,todoDay:s.todoDay})); }catch(e){} }
+  setP(p){ this.setState(p,()=>this.persist()); }
+
+  componentDidMount(){
+    let saved=null; try{ saved=JSON.parse(localStorage.getItem(this.LSK)||'null'); }catch(e){}
+    const ni=this.nowInfo();
+    const landDay=ni.phase==='in'?ni.dayN:1;
+    const patch={ online:typeof navigator!=='undefined'?navigator.onLine!==false:true, dayInit:true,
+      day:(saved&&saved.day)||landDay, view:(saved&&saved.view)||'today',
+      todoSec:(saved&&saved.todoSec)||'daily',
+      todoDay:(saved&&saved.todoDay!=null)?saved.todoDay:(ni.phase==='in'?ni.dayN:0),
+      doneDaily:(saved&&saved.doneDaily)||{'2-p0':true},
+      donePre:(saved&&saved.donePre)||{1:true},
+      doneBook:(saved&&saved.doneBook)||{} };
+    if(!saved) patch.day=landDay;
+    this.setState(patch,()=>{ this.scrollRail(this.state.day); });
+    this._on=()=>this.setState({online:true}); this._off=()=>this.setState({online:false});
+    window.addEventListener('online',this._on); window.addEventListener('offline',this._off);
+    this._tick=setInterval(()=>this.forceUpdate(),60000);
+  }
+  componentWillUnmount(){ clearInterval(this._tick); clearTimeout(this._tt);
+    window.removeEventListener('online',this._on); window.removeEventListener('offline',this._off); }
+
+  scrollRail(n){ const el=this._rail; if(!el||!el.children[n-1]) return; el.scrollLeft=Math.max(0,el.children[n-1].offsetLeft-12); }
+  fireToast(t){ clearTimeout(this._tt); this.setState({toast:t}); this._tt=setTimeout(()=>this.setState({toast:''}),1700); }
+  copy(t){ try{ if(navigator.clipboard) navigator.clipboard.writeText(t); }catch(e){} this.fireToast('已复制 · '+t); }
+  pickDay(n){
+    this.setState(s=>({day:n,view:'today',slideDir:n>=s.day?'L':'R',slideN:s.slideN+1,sheetOpen:false,altIdx:-1}),()=>{ this.persist(); this.scrollRail(n); });
+  }
+
+  renderVals(){
+    const s=this.state;
+    const CY='#00F0FF', MG='#FF2E88', BG='#0A0F1C';
+    const days=this.trip();
+    this._ni=this.nowInfo();
+    const ni=this._ni;
+    const online=s.online;
+    const day=s.day, view=s.view, dInfo=days[day-1];
+    const preTrip=ni.phase==='pre', inTrip=ni.phase==='in', postTrip=ni.phase==='post';
+
+    const dayItems=days.map(d=>({n:d.n,date:d.date,wk:d.wk,sum:d.sum,bag:!!d.bag,
+      pick:()=>this.pickDay(d.n),
+      bd:d.n===day?CY:'rgba(0,240,255,.2)',
+      bg:d.n===day?'rgba(0,240,255,.14)':'rgba(255,255,255,.02)',
+      fg:d.n===day?CY:'#9FB6C9',
+      glow:d.n===day?'0 0 12px rgba(0,240,255,.35)':'none',
+      rowBg:(inTrip&&d.n===ni.dayN)?'rgba(0,240,255,.07)':'transparent',
+      numFg:(inTrip&&d.n===ni.dayN)?MG:CY
+    }));
+
+    const nodes=dInfo.nodes.map((r,i)=>{
+      const st=this.stOf(day,r,i);
+      return {time:r.t,title:r.title,sub:r.sub,hasSub:!!r.sub,
+        op:st==='past'?0.4:1, weight:st==='now'?'700':'500',
+        rowBg:st==='now'?'rgba(255,46,136,.07)':'transparent',
+        railBd:st==='now'?MG:'transparent',
+        timeFg:st==='now'?MG:'#9FB6C9',
+        titleFg:st==='now'?'#fff':'#D8E6F0',
+        dotBg:st==='now'?MG:(st==='past'?'#3A4A5C':BG),
+        dotBd:st==='past'?'#3A4A5C':(st==='now'?MG:'rgba(0,240,255,.5)'),
+        dotAnim:st==='now'?'pulseNow 1.6s ease-in-out infinite':'none',
+        isCurrent:st==='now', hasTag:!!r.tag, tag:r.tag||'',
+        hasAlt:!!r.alt, altText:r.alt||'', altOpen:s.altIdx===i, altArrow:s.altIdx===i?'▾':'▸',
+        open:()=>this.setState({sheet:{...r,dayN:day},sheetOpen:true}),
+        toggleAlt:(e)=>{e.stopPropagation(); this.setState(x=>({altIdx:x.altIdx===i?-1:i}));}
+      };
+    });
+
+    const todoDay=s.todoDay;
+    const todoDays=days.map(d=>({n:d.n,
+      pick:()=>this.setP({todoDay:d.n}),
+      bd:d.n===todoDay?CY:'rgba(0,240,255,.2)',
+      bg:d.n===todoDay?'rgba(0,240,255,.14)':'rgba(255,255,255,.02)',
+      fg:d.n===todoDay?CY:'#9FB6C9'
+    }));
+    const tdInfo=todoDay>=1?days[todoDay-1]:null;
+    const specList=tdInfo?tdInfo.daily:[];
+    const genList=this.genRaw();
+    const mkTodo=(t,on,toggle,isGen)=>({text:t, isGen:!!isGen, mark:on?'✓':'',
+      boxBg:on?CY:'transparent', boxBd:on?CY:'rgba(0,240,255,.35)',
+      boxGlow:on?'0 0 10px rgba(0,240,255,.4)':'none',
+      fg:on?'#3A4A5C':'#D8E6F0', deco:on?'line-through':'none', toggle});
+    const dailyTodos=tdInfo?specList.map((t,i)=>{const k=todoDay+'-s'+i;
+        return mkTodo(t,!!s.doneDaily[k],()=>this.setP({doneDaily:{...s.doneDaily,[k]:!s.doneDaily[k]}}),false);})
+      .concat(genList.map((t,i)=>{const k=todoDay+'-g'+i;
+        return mkTodo(t,!!s.doneDaily[k],()=>this.setP({doneDaily:{...s.doneDaily,[k]:!s.doneDaily[k]}}),true);})):[];
+    const dailyDoneN=dailyTodos.filter(t=>t.mark).length;
+    const preTodos=this.preRaw().map((t,i)=>mkTodo(t,!!s.donePre[i],()=>this.setP({donePre:{...s.donePre,[i]:!s.donePre[i]}}),false));
+    const bookTodos=this.bookRaw().map((t,i)=>mkTodo(t,!!s.doneBook[i],()=>this.setP({doneBook:{...s.doneBook,[i]:!s.doneBook[i]}}),false));
+    const genTodos=genList.map(t=>({text:t}));
+    const todoSecs=[['daily','今日待办'],['trip','行程待办'],['emg','应急信息']].map(x=>({label:x[1],
+      click:()=>this.setP({todoSec:x[0]}),
+      bg:s.todoSec===x[0]?'rgba(0,240,255,.16)':'transparent',
+      fg:s.todoSec===x[0]?CY:'#5E7186',
+      sh:s.todoSec===x[0]?'0 0 12px rgba(0,240,255,.25)':'none'}));
+    const emgNums=this.emgRaw().map(e=>({...e,telHref:'tel:'+e.num,copy:()=>this.copy(e.num)}));
+    const emgCons=this.consRaw().map(e=>({...e,telHref:'tel:'+e.num.replace(/\s/g,''),copy:()=>this.copy(e.num)}));
+    const emgDay=todoDay>=1?days[todoDay-1]:days[0];
+    const emgStay=emgDay.stay||days[11].stay;
+
+    const tabs=[['overview','总览','3px'],['today','行程','50%'],['todo','待办','2px']].map(t=>({
+      label:t[1], iconR:t[2],
+      fg:view===t[0]?CY:'#5E7186', iconBg:view===t[0]?'rgba(0,240,255,.25)':'transparent',
+      topBd:view===t[0]?CY:'transparent',
+      glow:view===t[0]?'0 0 10px rgba(0,240,255,.5)':'none',
+      weight:view===t[0]?'700':'500',
+      click:()=>this.setP({view:t[0],sheetOpen:false})
+    }));
+
+    const sh=s.sheet||{};
+    const todayN=inTrip?ni.dayN:0;
+    const heroDay=inTrip?days[todayN-1]:null;
+    const stay=dInfo.stay, dinner=dInfo.dinner, dep=dInfo.deposit;
+
+    const swS=(e)=>{const t=e.touches&&e.touches[0]; if(t) this._sw={x:t.clientX,y:t.clientY};};
+    const swE=(e)=>{const st0=this._sw; this._sw=null; if(!st0) return;
+      const t=e.changedTouches&&e.changedTouches[0]; if(!t) return;
+      const dx=t.clientX-st0.x, dy=t.clientY-st0.y;
+      if(Math.abs(dx)>70&&Math.abs(dx)>Math.abs(dy)*2){ const nn=dx<0?Math.min(13,day+1):Math.max(1,day-1); if(nn!==day) this.pickDay(nn); }};
+    const shS=(e)=>{const t=e.touches&&e.touches[0]; if(t) this._sh={y:t.clientY};};
+    const shE=(e)=>{const st0=this._sh; this._sh=null; if(!st0) return;
+      const t=e.changedTouches&&e.changedTouches[0]; if(!t) return;
+      if(t.clientY-st0.y>60) this.setState({sheetOpen:false});};
+
+    const art=this.artFor(dInfo.city);
+    const ovArt=this.artFor(inTrip?heroDay.city:'罗马');
+    const rt=this.rtOf(day);
+    const nrt=rt.stops.length;
+    const fx=(i)=>(6+88*(nrt===1?0.5:i/(nrt-1)));
+    const rtStops=rt.stops.map((sp,i)=>{
+      const st=this.stOf(day,null,sp.ni); const nd=dInfo.nodes[sp.ni];
+      return {left:fx(i).toFixed(1)+'%',label:sp.label,time:nd.t,
+        fill:st==='now'?MG:(st==='past'?'#3A4A5C':'#0A0F1C'),
+        stroke:st==='now'?MG:(st==='past'?'#3A4A5C':'rgba(0,240,255,.7)'),
+        glow:st==='now'?'0 0 10px rgba(255,46,136,.7)':'none',
+        labelFg:st==='now'?'#fff':(st==='past'?'#5E7186':'#D8E6F0'),
+        open:(e)=>{e.stopPropagation(); this.setState({sheet:{...nd,dayN:day},sheetOpen:true});}};
+    });
+    const rtSegs=rt.modes.map((m,i)=>({left:((fx(i)+fx(i+1))/2).toFixed(1)+'%',label:m}));
+    return {
+      dayN:day,
+      heroSunX:art.s[0], heroSunY:art.s[1], heroSunC:art.s[2], heroFarD:art.f, heroMainD:art.m, heroDecoD:art.d,
+      ovSunX:ovArt.s[0], ovSunY:ovArt.s[1], ovSunC:ovArt.s[2], ovFarD:ovArt.f, ovMainD:ovArt.m, ovDecoD:ovArt.d,
+      rtStops, rtSegs,
+      stLabel:preTrip?('T-'+ni.cd+' 出发'):(inTrip?('D'+ni.dayN+' 进行中'):'已结束'),
+      stFg:preTrip?CY:(inTrip?MG:'#5E7186'),
+      stBd:preTrip?'rgba(0,240,255,.5)':(inTrip?'rgba(255,46,136,.5)':'rgba(94,113,134,.4)'),
+      stBg:preTrip?'rgba(0,240,255,.08)':(inTrip?'rgba(255,46,136,.1)':'rgba(255,255,255,.03)'),
+      netBg:online?'#2EE86C':'#FF2E88',
+      netGlow:online?'0 0 8px rgba(46,232,108,.7)':'0 0 8px rgba(255,46,136,.7)',
+      isToday:view==='today', isOverview:view==='overview', isTodo:view==='todo',
+      preTrip, cdDays:ni.cd,
+      days:dayItems, nodes, tabs,
+      railRef:(el)=>{this._rail=el;},
+      slideAnim:('sl'+s.slideDir+(s.slideN%2))+' .28s ease both',
+      dayTitle:'D'+day+' · '+dInfo.date, dayWk:'周'+dInfo.wk+' · '+dInfo.city, daySum:dInfo.sum,
+      heroBg:this.gradOf(dInfo.city),
+      isBagDay:!!dInfo.bag, bagLine:dInfo.bagLine||'',
+      routeLine:dInfo.route, hasTip:!!dInfo.tip, dayTip:dInfo.tip||'',
+      swS, swE, shS, shE,
+      stayOpen:s.stayOpen, stayArrow:s.stayOpen?'▾ 收起':'▸ 展开',
+      toggleStay:()=>this.setState(x=>({stayOpen:!x.stayOpen})),
+      hasStay:!!stay, noStay:!stay,
+      stayName:stay?stay.name:'', stayAddr:stay?stay.addr:'', stayTel:stay?stay.tel:'',
+      stayTelHref:stay?('tel:'+stay.tel.replace(/\s/g,'')):'#',
+      copyStayAddr:()=>this.copy(stay?stay.addr:''),
+      copyStayTel:()=>this.copy(stay?stay.tel:''),
+      hasDinner:!!dinner, dinnerName:dinner?dinner.name:'', dinnerInfo:dinner?dinner.info:'',
+      copyDinner:()=>this.copy(dinner?(dinner.name+' · '+dinner.info):''),
+      hasDeposit:!!dep, depositTag:dep?dep.tag:'', depositLine:dep?dep.line:'', depositSub:dep?dep.sub:'',
+      ovHeroBg:inTrip?this.gradOf(heroDay.city):'linear-gradient(160deg,#060A1E 0%,#0B1230 45%,#2A0E45 85%,#531744 115%)',
+      ovHeroTag:inTrip?'当日头图 · 随天切换':'旅行头图 · 全程核心景点',
+      ovHeroTitle:inTrip?('D'+todayN+' · '+heroDay.date+' '+heroDay.city):'罗马 → 索伦托 → 佛罗伦萨 → 威尼斯 → 米兰',
+      ovHeroSub:inTrip?heroDay.sum:'13 天 · 9.24–10.6 · 圣彼得 / 斗兽场 / 庞贝 / 乌菲兹 / 圣马可 / 大教堂',
+      ovHeroHint:inTrip?('TAP → 跳转 D'+todayN+' 行程'):(postTrip?'旅行已结束 · TAP → 回看 D1':'TAP → 跳转 D1 行程'),
+      ovHeroClick:()=>this.pickDay(inTrip?todayN:1),
+      todoSecs, secDaily:s.todoSec==='daily', secTrip:s.todoSec==='trip', secEmg:s.todoSec==='emg',
+      todoDays, dailyTodos, preTodos, bookTodos, genTodos,
+      dailyEmpty:!tdInfo, dailyHas:!!tdInfo,
+      dailyEmptyTitle:preTrip?'旅行未开始 · 今日待办为空':'选择上方日期查看当日待办',
+      dailyEmptySub:preTrip?'点上方 D1–D13 可预览各日待办 · 出发前事项在「行程待办」':'',
+      dailyCount:'D'+todoDay+' · '+(tdInfo?tdInfo.date+' '+tdInfo.city:'')+' · 已完成 '+dailyDoneN+' / '+dailyTodos.length,
+      emgScope:tdInfo?('D'+todoDay+' · 意大利'):'出发前 · 意大利',
+      emgPrev:()=>this.setP({todoDay:Math.max(1,(todoDay||1)-1)}),
+      emgNext:()=>this.setP({todoDay:Math.min(13,(todoDay||0)+1)}),
+      emgNums, emgCons,
+      emgStayLabel:tdInfo?('D'+todoDay+' '+tdInfo.city):'D1 罗马',
+      emgStayLine:emgStay.name+' · '+emgStay.addr+' · '+emgStay.tel,
+      copyEmgStay:()=>this.copy(emgStay.name+' · '+emgStay.addr+' · '+emgStay.tel),
+      sheetPe:s.sheetOpen?'auto':'none', scrimOp:s.sheetOpen?1:0, sheetY:s.sheetOpen?'0':'105%',
+      sheetCtx:sh.dayN?('D'+sh.dayN+' · '+days[sh.dayN-1].date+' · '+sh.t):'',
+      sheetTitle:sh.title||'',
+      sheetHasAddr:!!sh.addr, sheetAddr:sh.addr||'',
+      sheetHasNote:!!sh.note, sheetNote:sh.note||'',
+      sheetHasTel:!!sh.tel, sheetTel:sh.tel||'', sheetTelHref:'tel:'+String(sh.tel||'').replace(/\s/g,''),
+      copySheetTel:()=>this.copy(sh.tel||''),
+      closeSheet:()=>this.setState({sheetOpen:false}),
+      copySheetAddr:()=>this.copy(sh.addr||sh.title||''),
+      openMap:()=>{ if(!online){ this.fireToast('离线中 · 无法唤起在线地图'); return; }
+        const q=encodeURIComponent(sh.addr||sh.title||''); window.open('https://www.google.com/maps/search/?api=1&query='+q,'_blank'); },
+      mapBg:online?'rgba(255,46,136,.1)':'rgba(255,255,255,.02)',
+      mapFg:online?MG:'#3A4A5C',
+      mapBd:online?'rgba(255,46,136,.5)':'rgba(94,113,134,.3)',
+      mapCur:online?'pointer':'not-allowed',
+      mapLabel:online?'唤起在线地图':'在线地图（离线）',
+      toast:s.toast, toastOn:!!s.toast
+    };
+  }
+}
+</script>
+</body>
+</html>
