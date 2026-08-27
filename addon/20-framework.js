@@ -75,9 +75,6 @@
     '.zz-inthumb{position:relative;border:1px solid rgba(0,240,255,.18);border-radius:3px;overflow:hidden}',
     '.zz-inthumb svg{width:100%;height:auto;display:block}',
     '.zz-inzoom{position:absolute;right:8px;bottom:8px;padding:4px 9px;border:1px solid rgba(0,240,255,.4);border-radius:3px;background:rgba(10,15,28,.78);color:#00F0FF;font:600 10px "Share Tech Mono",monospace}',
-    '.zz-intabs{display:flex;gap:6px;padding:8px 2px 2px;flex-wrap:wrap}',
-    '.zz-intab{flex:none;padding:6px 10px;min-height:34px;border:1px solid rgba(94,113,134,.35);border-radius:3px;background:transparent;color:#9FB6C9;font:600 11px "Noto Sans SC",system-ui;cursor:pointer}',
-    '.zz-intab.on{color:#FF2E88;border-color:rgba(255,46,136,.6);background:rgba(255,46,136,.07)}',
     /* 预览卡位于 App 容器内：浅色模式经反色滤镜呈现，故其内部（含 SVG 地图）
        固定使用深色值，交由滤镜映射为日间色，避免变量被二次反转 */
     'html.zz-light .zz-inline{--zz-cyan:#00F0FF;--zz-mag:#FF2E88;--zz-line:rgba(0,240,255,.3);',
@@ -423,6 +420,46 @@
   /* ---------------- 行程页内嵌预览（与「精简行程」路线卡联动） ---------------- */
   var inlineBox = null, inlineState = { day: 0, mi: 0 };
 
+  /* 路线卡站点标签 → 子图序号（多图日；点击站点即切到该场景的地图） */
+  var STOP_MI = {
+    2: { '特米尼': 0, '圣彼得': 0, '博物馆': 0, '圣天使堡': 1, '晚餐': 1 },
+    3: { '圣依纳爵': 0, '万神殿': 0, '台阶': 1, '博尔盖塞': 1, '平丘': 1, '特莱维': 2 },
+    4: { '真理之口': 0, '维托里亚诺': 0, '古罗马': 0, '斗兽场': 0, '特斯塔乔': 1 },
+    5: { '特米尼': 0, '存箱': 0, '庞贝': 1, '取箱': 0, '索伦托': 2 },
+    7: { '索伦托角': 0, '浴场': 0, '午餐': 1, '民宿': 1, '大海滩': 1 },
+    8: { '索伦托': 0, '存箱': 0, 'Da Michele': 0, '取箱': 0, '佛罗伦萨': 1 },
+    9: { '学院': 0, 'Mario': 0, '乌菲兹': 0, '米开朗基罗': 1, 'Il Latini': 1 },
+    10: { '穹顶': 0, '新圣母站': 0, '威尼斯': 1, '酒馆': 1, '朱代卡': 1 },
+    11: { '朱代卡': 0, '圣马可': 0, '大殿': 0, '里亚托': 0, '车站': 1, '米兰': 1 },
+    12: { '大教堂': 0, '城堡': 0, '布雷拉': 0, '伴手礼': 0, '运河': 1 },
+  };
+
+  /* 捕获阶段监听路线卡点击：站点自身 stopPropagation 挡不住 capture，
+     既能切图，也不影响 App 原有「点站点弹节点卡片」 */
+  function onRouteClick(e) {
+    var rules = STOP_MI[inlineState.day];
+    if (!rules || !inlineBox) return;
+    if (e.target.closest && e.target.closest('.zz-inline')) return; /* 预览区自己的点击 */
+    var el = e.target, text = '';
+    for (var up = 0; el && up < 4; up++) {
+      text = (el.textContent || '').replace(/\s+/g, '');
+      if (text && text.length <= 16) break;
+      el = el.parentElement;
+    }
+    if (!text || text.length > 16) return;
+    var hit = null, hitLen = -1;
+    for (var k in rules) {
+      var kk = k.replace(/\s+/g, '');
+      if (text.indexOf(kk) === 0 && kk.length > hitLen) { hit = k; hitLen = kk.length; }
+    }
+    if (hit == null) return;
+    var mi = rules[hit];
+    if (mi !== inlineState.mi && (window.__ZZ_MAPS || []).length) {
+      inlineState.mi = mi;
+      renderInline(inlineState.day);
+    }
+  }
+
   function findRouteCard() {
     var divs = document.getElementsByTagName('div');
     for (var i = 0; i < divs.length; i++) {
@@ -448,24 +485,12 @@
   function renderInline(day) {
     var list = mapsOf(day), m = list[inlineState.mi] || list[0];
     if (!m) { inlineBox.innerHTML = ''; return; }
-    var h = '<div class="zz-inhead"><b>MAP// 本日离线地图</b><span>' + list.length + ' 张 · 点击全屏缩放</span></div>';
+    var hint = list.length > 1
+      ? (inlineState.mi + 1) + '/' + list.length + ' · 点站点切图 · 点图全屏'
+      : '点击全屏缩放';
+    var h = '<div class="zz-inhead"><b>MAP// ' + esc(m.t) + '</b><span>' + hint + '</span></div>';
     h += '<div class="zz-inthumb">' + renderMap(m) + '<span class="zz-inzoom">⛶ 全屏</span></div>';
-    if (list.length > 1) {
-      h += '<div class="zz-intabs">';
-      list.forEach(function (mm, i) {
-        h += '<button class="zz-intab' + (i === inlineState.mi ? ' on' : '') + '" data-i="' + i + '">' + (i + 1) + ' · ' + esc(mm.t) + '</button>';
-      });
-      h += '</div>';
-    }
     inlineBox.innerHTML = h;
-    var tabs = inlineBox.querySelectorAll('.zz-intab');
-    for (var i = 0; i < tabs.length; i++) {
-      tabs[i].addEventListener('click', function (e) {
-        e.stopPropagation();
-        inlineState.mi = +this.getAttribute('data-i');
-        renderInline(day);
-      });
-    }
   }
 
   function ensureInline() {
@@ -483,12 +508,15 @@
       inlineBox.className = 'zz-inline';
       inlineBox.addEventListener('click', function (e) {
         e.stopPropagation();
-        if (e.target.closest && e.target.closest('.zz-intab')) return;
         open(inlineState.day, inlineState.mi);
       });
     }
     renderInline(r.day);
     r.card.appendChild(inlineBox); /* 并入路线卡同一框内（末尾） */
+    if (!r.card.__zzMapBound) {
+      r.card.addEventListener('click', onRouteClick, true);
+      r.card.__zzMapBound = true;
+    }
   }
 
   /* ---------------- 挂载 ---------------- */
