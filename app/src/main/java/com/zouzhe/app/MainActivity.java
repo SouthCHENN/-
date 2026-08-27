@@ -10,10 +10,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.view.View;
+import android.view.Window;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
@@ -37,6 +40,7 @@ import android.widget.Toast;
 public class MainActivity extends Activity {
 
     private static final int BG = Color.parseColor("#0A0F1C");
+    private static final int BG_LIGHT = Color.parseColor("#F2F5F9");
     private static final String JS_SHIM =
             "(function(){" +
             "if(!window.ZouzheBridge)return;" +
@@ -81,7 +85,7 @@ public class MainActivity extends Activity {
         s.setMediaPlaybackRequiresUserGesture(true);
         s.setSupportMultipleWindows(true); // window.open 走 onCreateWindow 兜底而非被静默丢弃
 
-        webView.addJavascriptInterface(new Bridge(this), "ZouzheBridge");
+        webView.addJavascriptInterface(new Bridge(this, this), "ZouzheBridge");
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
@@ -257,13 +261,34 @@ public class MainActivity extends Activity {
         super.onDestroy();
     }
 
-    /** JS 桥：剪贴板 + 外链打开（file:// 下 navigator.clipboard / window.open 的替代实现）。 */
+    /** 深浅主题切换时同步系统栏颜色与图标明暗（插件层 JS 调用）。 */
+    void applyNativeTheme(boolean light) {
+        int bg = light ? BG_LIGHT : BG;
+        Window w = getWindow();
+        w.setStatusBarColor(bg);
+        w.setNavigationBarColor(bg);
+        View dv = w.getDecorView();
+        int vis = dv.getSystemUiVisibility();
+        if (light) vis |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+        else vis &= ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+        // SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR = 0x10（API 26+，编译基线 23 无此常量）
+        if (Build.VERSION.SDK_INT >= 26) {
+            if (light) vis |= 0x10;
+            else vis &= ~0x10;
+        }
+        dv.setSystemUiVisibility(vis);
+        if (webView != null) webView.setBackgroundColor(bg);
+    }
+
+    /** JS 桥：剪贴板 + 外链打开 + 主题同步（file:// 非安全上下文的原生替代实现）。 */
     public static class Bridge {
         private final Context ctx;
+        private final MainActivity act;
         private final Handler main = new Handler(Looper.getMainLooper());
 
-        Bridge(Context ctx) {
+        Bridge(Context ctx, MainActivity act) {
             this.ctx = ctx.getApplicationContext();
+            this.act = act;
         }
 
         @JavascriptInterface
@@ -272,6 +297,18 @@ public class MainActivity extends Activity {
             if (cm != null) {
                 cm.setPrimaryClip(ClipData.newPlainText("走着", text == null ? "" : text));
             }
+        }
+
+        @JavascriptInterface
+        public void setTheme(final String mode) {
+            main.post(new Runnable() {
+                @Override
+                public void run() {
+                    if (act != null && !act.isFinishing()) {
+                        act.applyNativeTheme("light".equals(mode));
+                    }
+                }
+            });
         }
 
         @JavascriptInterface

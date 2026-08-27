@@ -4,18 +4,18 @@
 
 ## 安装包
 
-**`dist/zouzhe-v1.0.3.apk`**（约 4.9 MB）
+**`dist/zouzhe-v1.1.0.apk`**（约 4.9 MB）
 
 | 项 | 值 |
 |---|---|
 | 包名 | `com.zouzhe.app` |
-| 版本 | 1.0.3 (versionCode 4) |
+| 版本 | 1.1.0 (versionCode 5) |
 | minSdk / targetSdk | 23 (Android 6.0) / 34 (Android 14) |
 | 签名 | v1 + v2 + v3 全方案（自签名，Android 6.x 亦可安装） |
-| 方向 | 竖屏锁定，深色主题 `#0A0F1C`（含状态栏/导航栏） |
+| 方向/主题 | 竖屏锁定；深/浅双主题可切换（含状态栏/导航栏同步） |
 
 ### 小米 15 Pro 安装步骤
-1. 把 `dist/zouzhe-v1.0.3.apk` 传到手机（微信文件传输助手 / USB / 网盘均可）。
+1. 把 `dist/zouzhe-v1.1.0.apk` 传到手机（微信文件传输助手 / USB / 网盘均可）。
 2. 点击 APK → 系统提示「未知来源应用」→ 允许当前来源安装。
 3. HyperOS 若弹「纯净模式」拦截，选择 **仍要安装**（或临时关闭纯净模式：设置 → 隐私与安全 → 纯净模式）。
 4. 安装后打开即用；**飞行模式下全部行程数据可用**，「唤起在线地图」直接拉起本机高德/百度等地图 App 搜索该地址。
@@ -25,6 +25,11 @@
 - **WebView 内核**：页面运行时用到 `??` 等 ES2020 语法，需 **Chromium 80+**（2020 年后更新过的 Android System WebView / 厂商内核均满足）；启动时自动检测，内核过旧会弹窗引导更新而非白屏；个别无 WebView 组件的精简 ROM 会提示后优雅退出
 - **屏幕适配**：360–800px 逻辑宽度实测布局完好（360×640 / 360×800 / 393×873 / 412×915 / 480×1067 / 800×1280），超过 520px 内容居中（平板可用）；竖屏/触屏/多点触控均声明为非必需，平板、Chromebook、无通话功能设备可安装
 - **无 GMS 设备**（华为等）：不依赖 Google 服务；地图走 `geo:`/高德/百度 deeplink，系统自带地图亦可响应
+
+## 新增功能（v1.1.0 插件层）
+- **每日离线地图**（右侧浮动 MAP 按钮）：13 天共 23 张手绘示意地图，参照真实地理——道路名（中/意双语）、参照物、行进方向箭头、时刻锚点、指北针；步行=青实线、车/船=品红虚线、海路=青点线；多场景日（如 D5 换乘/庞贝园内/索伦托入住）拆多张子图切换；**双指缩放/拖动平移/双击放大**看清名称与方向；断网/迷路场景完全可用（全部内置，无需网络）
+- **深浅主题切换**（右侧浮动 ☀/☾ 按钮）：浅色版为白天户外阅读调校（纸白底+深色字，品牌青/品红自动映射为日间色），状态栏/导航栏颜色与图标明暗随之切换；选择持久化，重启保持；不影响 App 原交互主流程
+- 插件层独立注入（`addon/` + `scripts/inject_addon.py`），不修改 App 编译产物内部逻辑
 
 ## 功能（壳层职责）
 - WebView 加载 `assets/index.html`（自包含离线单文件），`domStorageEnabled` 开启 → 勾选/进度经 localStorage 持久化
@@ -40,11 +45,12 @@ app/src/main/
   java/com/zouzhe/app/MainActivity.java   # 唯一 Activity（无 androidx 依赖）
   assets/index.html                       # 离线单文件（勿手改，见 design/README.md）
   res/                                    # 主题、字符串、自适应图标
+addon/                                    # 插件层：每日地图数据×3 + 查看器/主题框架
 design/                                   # 设计交付物（源文件/运行时/规格/行程原稿）
 scripts/                                  # 图标渲染（chromium headless + SVG）
 build.sh                                  # 构建脚本
 keystore/zouzhe.keystore                  # 签名密钥库（口令 zouzhe2026，仅自用侧载）
-dist/zouzhe-v1.0.3.apk                    # 交付安装包
+dist/zouzhe-v1.1.0.apk                    # 交付安装包
 ```
 
 ## 从源码构建
@@ -52,12 +58,13 @@ dist/zouzhe-v1.0.3.apk                    # 交付安装包
 
 ```bash
 apt-get install -y aapt apksigner zipalign dalvik-exchange android-sdk-platform-23 default-jdk
-./build.sh          # 产物: dist/zouzhe-v1.0.3.apk
+./build.sh          # 产物: dist/zouzhe-v1.1.0.apk
 ```
 
 管线：`aapt`(R.java) → `javac`(target 8) → `dx` → `aapt package`（resources.arsc 不压缩，满足 targetSdk 30+ 安装要求）→ `zipalign` → `apksigner`(v1+v2 签名，Android 7+ 实际启用 v2/v3)。
 
 图标重新生成（需 chromium + Pillow）：`scripts/gen_icons.sh`。
+地图/主题插件改动后重新注入：`python3 scripts/inject_addon.py`（幂等），再 `./build.sh`。
 
 ## 换一次旅行
 数据模型见 `design/README.md`。替换 `app/src/main/assets/index.html` 为新旅行的离线单文件，改 `versionCode/versionName` 后重新 `./build.sh` 即可（同一密钥库签名可覆盖安装）。
