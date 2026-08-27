@@ -401,6 +401,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 
 
+
 <!--ZZ_ADDON_BEGIN-->
 <script id="zz-addon">
 /* ============================================================
@@ -1370,22 +1371,30 @@ window.__ZZ_WC = {
     '.zz-wcsec.warn .zz-wch{color:#FF2E88}',
     '.zz-wch .zz-wcarw{margin-left:auto;font-size:13px;opacity:.8}',
     '.zz-wcb{padding:2px 1px 4px;font:12.5px/1.7 "Noto Sans SC",system-ui;color:#D8E6F0}',
-    /* C：标题旁徽章 + 独立弹层 */
-    '.zz-wcchip{display:inline-flex;align-items:center;gap:4px;margin:6px 0 0;padding:4px 10px;min-height:30px;',
-    'border:1px solid rgba(0,240,255,.35);border-radius:3px;background:rgba(0,240,255,.05);',
-    'font:600 10.5px "Share Tech Mono",monospace;color:#00F0FF;cursor:pointer;-webkit-tap-highlight-color:transparent}',
-    '.zz-wcchip.warn{border-color:rgba(255,46,136,.5);background:rgba(255,46,136,.07);color:#FF2E88}',
-    '.zz-wcpop{position:fixed;inset:0;z-index:9500}',
-    '.zz-wcpop-scrim{position:absolute;inset:0;background:rgba(2,4,10,.6)}',
-    '.zz-wcpop-card{position:absolute;left:16px;right:16px;bottom:calc(90px + env(safe-area-inset-bottom));max-width:480px;margin:0 auto;',
-    'background:#0D1424;border:1px solid rgba(0,240,255,.4);border-radius:6px;padding:14px 16px;box-shadow:0 0 30px rgba(0,240,255,.15)}',
-    '.zz-wcpop-card.warn{border-color:rgba(255,46,136,.5);box-shadow:0 0 30px rgba(255,46,136,.15)}',
-    '.zz-wcpop-card b{display:block;font:600 11px "Share Tech Mono",monospace;color:#00F0FF;letter-spacing:.5px;margin-bottom:2px}',
-    '.zz-wcpop-card.warn b{color:#FF2E88}',
-    '.zz-wcpop-card i{display:block;font:italic 400 11px "Noto Sans SC",system-ui;color:#5E7186;margin-bottom:7px;font-style:normal}',
-    '.zz-wcpop-card p{margin:0;font:13px/1.75 "Noto Sans SC",system-ui;color:#D8E6F0}',
-    '.zz-wcpop-x{display:block;width:100%;min-height:40px;margin-top:12px;border:1px solid rgba(0,240,255,.35);border-radius:3px;',
-    'background:transparent;color:#00F0FF;font:600 13px "Noto Sans SC",system-ui;cursor:pointer}',
+    /* —— 票根模块（原型）：缩略图网格 / 添加位 / 全屏查看 —— */
+    '.zz-tksec{margin:12px -2px 0;padding:10px 2px 2px;border-top:1px dashed rgba(0,240,255,.3)}',
+    '.zz-tksec .zz-wch{cursor:default}',
+    '.zz-tkgrid{display:flex;gap:9px;flex-wrap:wrap;padding:7px 1px 4px}',
+    '.zz-tkthumb{position:relative;width:64px;height:88px;border:1px solid rgba(0,240,255,.35);border-radius:3px;overflow:hidden;background:#E8E4D8;cursor:pointer;-webkit-tap-highlight-color:transparent}',
+    '.zz-tkthumb img{width:100%;height:100%;object-fit:cover;display:block}',
+    '.zz-tkadd{width:64px;height:88px;border:1px dashed rgba(0,240,255,.45);border-radius:3px;display:flex;flex-direction:column;',
+    'align-items:center;justify-content:center;gap:3px;color:#00F0FF;background:rgba(0,240,255,.03);cursor:pointer;',
+    'font:600 10.5px "Noto Sans SC",system-ui;-webkit-tap-highlight-color:transparent}',
+    '.zz-tkadd span{font:300 22px/1 "Share Tech Mono",monospace}',
+    '.zz-tkcard{margin:10px 14px 0;border:1px solid rgba(0,240,255,.22);border-radius:4px;background:rgba(255,255,255,.03);padding:10px 12px 8px}',
+    '.zz-tkcard>b{display:flex;justify-content:space-between;font:600 10px "Share Tech Mono",monospace;color:#00F0FF;letter-spacing:.5px}',
+    '.zz-tkcard>b span{color:#5E7186;font-weight:400}',
+    '.zz-tkview{position:fixed;inset:0;z-index:9600;display:flex;flex-direction:column;align-items:center;justify-content:center}',
+    '.zz-tkview-scrim{position:absolute;inset:0;background:rgba(2,4,10,.92)}',
+    '.zz-tkview img{position:relative;max-width:86%;max-height:64%;border:1px solid rgba(0,240,255,.4);border-radius:4px;box-shadow:0 0 40px rgba(0,240,255,.18)}',
+    '.zz-tkview-cap{position:relative;margin-top:12px;font:600 12px "Noto Sans SC",system-ui;color:#D8E6F0}',
+    '.zz-tkview-hint{position:relative;margin-top:4px;font:10.5px "Share Tech Mono",monospace;color:#5E7186}',
+    '.zz-tkview-row{position:relative;display:flex;gap:10px;margin-top:16px}',
+    '.zz-tkview-row button{min-width:120px;min-height:42px;border-radius:3px;font:600 13px "Noto Sans SC",system-ui;cursor:pointer}',
+    '.zz-tkview-x{border:1px solid rgba(0,240,255,.4);background:rgba(0,240,255,.08);color:#00F0FF}',
+    '.zz-tkview-del{border:1px solid rgba(255,46,136,.45);background:transparent;color:#FF2E88}',
+    '.zz-toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%);z-index:9700;padding:9px 16px;border-radius:4px;',
+    'background:rgba(13,20,36,.92);border:1px solid rgba(0,240,255,.4);color:#7FDBE8;font:12.5px "Noto Sans SC",system-ui}',
     /* 路线图上标示当前所看行程段：站名青色加粗+细下划线（无背景/发光，不出界不叠加） */
     '.zz-onseg>div:nth-of-type(2){color:#00F0FF!important;font-weight:700!important}',
     '.zz-onseg::after{content:"";width:24px;height:2px;background:#00F0FF;margin-top:3px;border-radius:1px}',
@@ -1870,84 +1879,163 @@ window.__ZZ_WC = {
     }
   }
 
-  /* ---------------- 节点详情卡 · 厕所位置（独立区块，三种交互方案） ----------------
-     方案由 window.__ZZ_WC_MODE 控制：'A'=卡尾折叠抽屉 'B'=卡尾分区直展 'C'=徽章+独立弹层 */
-  var wcCur = null; /* 当前节点命中的厕所信息 {key,text,warn,title} */
-
-  function ensureWc() {
-    var WC = window.__ZZ_WC || {};
-    var mode = window.__ZZ_WC_MODE || 'A';
-    /* 找节点详情 bottom sheet（圆角 10px 10px 0 0 的底部容器） */
-    var sheet = null, divs = document.getElementsByTagName('div');
+  /* ---------------- 节点详情卡 · 厕所位置（B方案定稿：卡尾独立分区直展） ---------------- */
+  function findSheet() {
+    var divs = document.getElementsByTagName('div');
     for (var i = 0; i < divs.length; i++) {
       var st = divs[i].getAttribute('style') || '';
-      if (st.indexOf('10px 10px 0') >= 0 && st.indexOf('bottom') >= 0) { sheet = divs[i]; break; }
+      if (st.indexOf('10px 10px 0') >= 0 && st.indexOf('bottom') >= 0) return divs[i];
     }
-    if (!sheet) return;
-    /* 上下文行取天数、17px/900 行取节点标题 */
+    return null;
+  }
+  function sheetNode(sheet) {
     var dm = /D(\d+)\s*·/.exec(sheet.textContent || '');
-    var titleEl = null, title = '';
-    var inner = sheet.getElementsByTagName('div');
+    var title = '', inner = sheet.getElementsByTagName('div');
     for (var j = 0; j < inner.length; j++) {
-      var s2 = inner[j].getAttribute('style') || '';
-      if (s2.indexOf('17px') >= 0) { titleEl = inner[j]; title = (inner[j].textContent || '').trim(); break; }
+      if (((inner[j].getAttribute('style') || '')).indexOf('17px') >= 0) {
+        title = (inner[j].textContent || '').trim();
+        break;
+      }
     }
-    function clearAll() {
-      var olds = sheet.querySelectorAll('.zz-wcsec,.zz-wcchip');
-      for (var o = 0; o < olds.length; o++) olds[o].parentElement.removeChild(olds[o]);
-    }
-    if (!dm || !title || !titleEl) { clearAll(); wcCur = null; return; }
-    var day = +dm[1], rules = WC[day] || [], text = null;
+    return dm && title ? { day: +dm[1], title: title } : null;
+  }
+
+  function ensureWc() {
+    var sheet = findSheet();
+    if (!sheet) return;
+    var nd = sheetNode(sheet);
+    var old = sheet.querySelector('.zz-wcsec');
+    if (!nd) { if (old) old.parentElement.removeChild(old); return; }
+    var rules = (window.__ZZ_WC || {})[nd.day] || [], text = null;
     for (var r = 0; r < rules.length; r++) {
       var kws = rules[r][0], hit = false;
-      for (var k = 0; k < kws.length; k++) if (title.indexOf(kws[k]) >= 0) { hit = true; break; }
+      for (var k = 0; k < kws.length; k++) if (nd.title.indexOf(kws[k]) >= 0) { hit = true; break; }
       if (hit) { text = rules[r][1]; break; }
     }
-    var key = mode + '|' + day + '|' + title;
-    var exist = sheet.querySelector('.zz-wcsec,.zz-wcchip');
-    if (exist && exist.getAttribute('data-key') === key) return;
-    clearAll();
-    if (text == null) { wcCur = null; return; }
+    var key = nd.day + '|' + nd.title;
+    if (old && old.getAttribute('data-key') === key) return;
+    if (old) old.parentElement.removeChild(old);
+    if (text == null) return;
     var warn = text.indexOf('⚠️') >= 0;
-    wcCur = { key: key, text: text, warn: warn, title: title };
-    var lines = text.split('\n').map(esc).join('<br>');
-
-    if (mode === 'C') {
-      var chip = document.createElement('div');
-      chip.className = 'zz-wcchip' + (warn ? ' warn' : '');
-      chip.setAttribute('data-key', key);
-      chip.innerHTML = '🚻 厕所位置' + (warn ? ' ⚠️' : '') + ' ›';
-      titleEl.insertAdjacentElement('afterend', chip);
-      return;
-    }
     var sec = document.createElement('div');
     sec.className = 'zz-wcsec' + (warn ? ' warn' : '');
     sec.setAttribute('data-key', key);
-    var open = mode === 'B';
-    sec.innerHTML =
-      '<div class="zz-wch">🚻 WC// 厕所位置' +
-      (mode === 'A' ? '<span class="zz-wcarw">' + (open ? '▾' : '▸') + '</span>' : '') +
-      '</div>' +
-      '<div class="zz-wcb"' + (open ? '' : ' style="display:none"') + '>' + lines + '</div>';
-    sheet.appendChild(sec); /* 卡尾：位于按钮与离线说明之后，独立分区 */
+    sec.innerHTML = '<div class="zz-wch">🚻 WC// 厕所位置</div>' +
+      '<div class="zz-wcb">' + text.split('\n').map(esc).join('<br>') + '</div>';
+    sheet.appendChild(sec); /* 卡尾：按钮与离线说明之后的独立分区，无归属歧义 */
   }
 
-  function wcPopupOpen() {
-    if (!wcCur) return;
-    wcPopupClose();
-    var pop = document.createElement('div');
-    pop.className = 'zz-wcpop';
-    pop.innerHTML =
-      '<div class="zz-wcpop-scrim"></div>' +
-      '<div class="zz-wcpop-card' + (wcCur.warn ? ' warn' : '') + '">' +
-      '<b>🚻 WC// 厕所位置</b><i>' + esc(wcCur.title) + '</i>' +
-      '<p>' + wcCur.text.split('\n').map(esc).join('<br>') + '</p>' +
-      '<button class="zz-wcpop-x">关闭</button></div>';
-    document.body.appendChild(pop);
+  /* ---------------- 票根模块（层级方案原型，window.__ZZ_TK_PROTO 控制） ----------------
+     'node'=节点详情卡内 'day'=行程页每日卡 'global'=总览页票夹卡；未设置则不渲染 */
+  function demoStub(title, sub, hue) {
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="420">' +
+      '<rect width="300" height="420" fill="#F2EDE0"/>' +
+      '<rect x="0" y="0" width="300" height="86" fill="' + hue + '"/>' +
+      '<text x="20" y="52" font-family="monospace" font-size="26" font-weight="bold" fill="#fff">' + title + '</text>' +
+      '<text x="20" y="132" font-family="monospace" font-size="17" fill="#333">' + sub + '</text>' +
+      '<text x="20" y="166" font-family="monospace" font-size="14" fill="#777">ADULTO / FULL — EUR 18.00</text>' +
+      '<line x1="14" y1="300" x2="286" y2="300" stroke="#999" stroke-dasharray="6 6"/>' +
+      Array.from({ length: 26 }).map(function (_, i) {
+        var w = (i * 7919) % 5 + 2;
+        return '<rect x="' + (22 + i * 10) + '" y="322" width="' + w + '" height="66" fill="#222"/>';
+      }).join('') +
+      '</svg>';
+    return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
   }
-  function wcPopupClose() {
-    var p = document.querySelector('.zz-wcpop');
-    if (p) p.parentElement.removeChild(p);
+  var TK_DEMO = [
+    { cap: '斗兽场 16:00 · 竞技场版 ×2', img: demoStub('COLOSSEO', '27 SET 2026 · 16:00', '#8E3B46') },
+    { cap: '古罗马广场+帕拉丁诺 ×2', img: demoStub('FORO ROMANO', '27 SET 2026 · 13:30', '#3B6E8E') },
+  ];
+  function tkGrid(items) {
+    var h = '<div class="zz-tkgrid">';
+    items.forEach(function (it) {
+      h += '<div class="zz-tkthumb" data-cap="' + esc(it.cap) + '"><img src="' + it.img + '" alt=""></div>';
+    });
+    h += '<div class="zz-tkadd"><span>＋</span>添加</div></div>';
+    return h;
+  }
+  function ensureTickets() {
+    var mode = window.__ZZ_TK_PROTO;
+    if (!mode) return;
+    if (mode === 'node') {
+      var sheet = findSheet();
+      if (!sheet || !sheetNode(sheet)) return;
+      if (sheet.querySelector('.zz-tksec')) return;
+      var sec = document.createElement('div');
+      sec.className = 'zz-tksec';
+      sec.innerHTML = '<div class="zz-wch">🎫 TICKET// 本节点票根 · ' + TK_DEMO.length + ' 张</div>' + tkGrid(TK_DEMO);
+      var wcs = sheet.querySelector('.zz-wcsec');
+      if (wcs) sheet.insertBefore(sec, wcs); else sheet.appendChild(sec);
+      return;
+    }
+    if (mode === 'day') {
+      if (document.querySelector('.zz-tkcard[data-lv="day"]')) return;
+      /* 挂在「住宿 & 饭店」卡之后 */
+      var anchor = null, divs = document.getElementsByTagName('div');
+      for (var i = 0; i < divs.length; i++) {
+        var t = (divs[i].textContent || '').trim();
+        if (t === '住宿 & 饭店' || t.indexOf('住宿 & 饭店') === 0 && t.length < 20) { anchor = divs[i]; break; }
+      }
+      if (!anchor) return;
+      var card = anchor;
+      while (card && card !== document.body) {
+        var st = card.getAttribute('style') || '';
+        if (st.indexOf('rgba(0, 240, 255') >= 0 && st.indexOf('border') >= 0 && st.indexOf('margin') >= 0) break;
+        card = card.parentElement;
+      }
+      if (!card || card === document.body) card = anchor.parentElement.parentElement;
+      var dc = document.createElement('div');
+      dc.className = 'zz-tkcard';
+      dc.setAttribute('data-lv', 'day');
+      dc.innerHTML = '<b>🎫 TICKET// 本日票根<span>2 张 · 点击查看</span></b>' + tkGrid(TK_DEMO);
+      card.insertAdjacentElement('afterend', dc);
+      return;
+    }
+    if (mode === 'global') {
+      if (document.querySelector('.zz-tkcard[data-lv="global"]')) return;
+      /* 总览页：挂在「总览」标题行之后 */
+      var mark = null, dv = document.getElementsByTagName('span');
+      for (var j = 0; j < dv.length; j++) {
+        if ((dv[j].textContent || '').trim() === '总览' &&
+            ((dv[j].getAttribute('style') || '')).indexOf('17px') >= 0) { mark = dv[j]; break; }
+      }
+      if (!mark) return;
+      var row = mark.parentElement;
+      var gc = document.createElement('div');
+      gc.className = 'zz-tkcard';
+      gc.setAttribute('data-lv', 'global');
+      gc.innerHTML = '<b>🎫 TICKET// 旅行票夹<span>按天分组 · 4 张</span></b>' +
+        '<div style="font:600 10px monospace;color:#5E7186;margin-top:7px">D4 · 9.27 古罗马日</div>' + tkGrid(TK_DEMO) +
+        '<div style="font:600 10px monospace;color:#5E7186;margin-top:5px">D5 · 9.28 庞贝</div>' +
+        tkGrid([{ cap: '庞贝考古公园 ×2', img: demoStub('POMPEII', '28 SET 2026 · PARCO', '#7A5A2E') },
+                { cap: '红箭 9503 罗马→那不勒斯', img: demoStub('FRECCIA 9503', 'ROMA TE - NA C.LE', '#8E2E5A') }]);
+      row.insertAdjacentElement('afterend', gc);
+    }
+  }
+  function tkView(src, cap) {
+    tkViewClose();
+    var v = document.createElement('div');
+    v.className = 'zz-tkview';
+    v.innerHTML = '<div class="zz-tkview-scrim"></div><img src="' + src + '" alt="">' +
+      '<div class="zz-tkview-cap">' + esc(cap) + '</div>' +
+      '<div class="zz-tkview-hint">双指缩放查看 · 离线可用</div>' +
+      '<div class="zz-tkview-row"><button class="zz-tkview-del">删除</button><button class="zz-tkview-x">关闭</button></div>';
+    document.body.appendChild(v);
+  }
+  function tkViewClose() {
+    var v = document.querySelector('.zz-tkview');
+    if (v) v.parentElement.removeChild(v);
+  }
+  var toastT = null;
+  function zzToast(msg) {
+    var t = document.querySelector('.zz-toast');
+    if (t) t.parentElement.removeChild(t);
+    t = document.createElement('div');
+    t.className = 'zz-toast';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    clearTimeout(toastT);
+    toastT = setTimeout(function () { if (t.parentElement) t.parentElement.removeChild(t); }, 1700);
   }
 
   /* 隐藏头图上方的预出发日期提示条（旅行未开始 · 正在看 Dn 计划 · T-N DAYS），
@@ -2020,21 +2108,14 @@ window.__ZZ_WC = {
         applyTheme(getTheme() === 'light' ? 'dark' : 'light');
         return;
       }
-      var wch = t.closest('.zz-wch');
-      if (wch && wch.parentElement && wch.parentElement.classList.contains('zz-wcsec')) {
-        /* 方案A：折叠抽屉开合 */
-        if ((window.__ZZ_WC_MODE || 'A') === 'A') {
-          e.stopPropagation();
-          var body = wch.parentElement.querySelector('.zz-wcb');
-          var arw = wch.querySelector('.zz-wcarw');
-          var vis = body && body.style.display !== 'none';
-          if (body) body.style.display = vis ? 'none' : '';
-          if (arw) arw.textContent = vis ? '▸' : '▾';
-        }
+      if (t.closest('.zz-tkthumb')) {
+        e.stopPropagation();
+        var img = t.closest('.zz-tkthumb').querySelector('img');
+        if (img) tkView(img.src, t.closest('.zz-tkthumb').getAttribute('data-cap') || '');
         return;
       }
-      if (t.closest('.zz-wcchip')) { e.stopPropagation(); wcPopupOpen(); return; }
-      if (t.closest('.zz-wcpop-x') || (t.closest('.zz-wcpop-scrim'))) { e.stopPropagation(); wcPopupClose(); return; }
+      if (t.closest('.zz-tkadd')) { e.stopPropagation(); zzToast('演示原型：正式版此处拉起相册/拍照'); return; }
+      if (t.closest('.zz-tkview-x') || t.closest('.zz-tkview-scrim')) { e.stopPropagation(); tkViewClose(); return; }
     }, true);
     /* App 解包/重渲染后自动补挂：MutationObserver 快速响应 + 周期兜底 */
     var moT = null, moBusy = false;
@@ -2048,6 +2129,7 @@ window.__ZZ_WC = {
           hideBanner();
           ensureInline();
           ensureWc();
+          ensureTickets();
           if (ov && !document.body.contains(ov)) document.body.appendChild(ov);
         }
       } finally { moBusy = false; }
