@@ -14,7 +14,7 @@ OUT="$ROOT/build"
 DIST="$ROOT/dist"
 KS="$ROOT/keystore/zouzhe.keystore"
 KS_PASS="zouzhe2026"
-APK_NAME="zouzhe-v1.0.2.apk"
+APK_NAME="zouzhe-v1.0.3.apk"
 
 rm -rf "$OUT"
 mkdir -p "$OUT/gen" "$OUT/classes" "$DIST" "$ROOT/keystore"
@@ -34,7 +34,7 @@ javac -source 8 -target 8 -encoding UTF-8 \
 test -f "$OUT/classes/com/zouzhe/app/MainActivity.class"
 
 echo "==> [3/6] dx 转 classes.dex"
-dalvik-exchange --dex --min-sdk-version=26 --output="$OUT/classes.dex" "$OUT/classes"
+dalvik-exchange --dex --min-sdk-version=23 --output="$OUT/classes.dex" "$OUT/classes"
 
 echo "==> [4/6] aapt 打包资源 + assets（resources.arsc 不压缩，targetSdk30+ 安装要求）"
 aapt package -f \
@@ -59,9 +59,9 @@ if [ ! -f "$KS" ]; then
 fi
 apksigner sign --ks "$KS" --ks-key-alias zouzhe \
   --ks-pass "pass:$KS_PASS" --key-pass "pass:$KS_PASS" \
-  --min-sdk-version 26 \
+  --min-sdk-version 23 \
   --out "$DIST/$APK_NAME" "$OUT/aligned.apk"
 
-apksigner verify --min-sdk-version 26 "$DIST/$APK_NAME"
+apksigner verify --min-sdk-version 23 "$DIST/$APK_NAME"
 echo "==> 完成: $DIST/$APK_NAME"
 ls -la "$DIST/$APK_NAME"

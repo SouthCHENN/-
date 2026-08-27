@@ -4,23 +4,27 @@
 
 ## 安装包
 
-**`dist/zouzhe-v1.0.2.apk`**（约 4.9 MB）
+**`dist/zouzhe-v1.0.3.apk`**（约 4.9 MB）
 
 | 项 | 值 |
 |---|---|
 | 包名 | `com.zouzhe.app` |
-| 版本 | 1.0.2 (versionCode 3) |
-| minSdk / targetSdk | 26 (Android 8.0) / 34 (Android 14) |
-| 签名 | APK Signature Scheme v2 + v3（自签名） |
+| 版本 | 1.0.3 (versionCode 4) |
+| minSdk / targetSdk | 23 (Android 6.0) / 34 (Android 14) |
+| 签名 | v1 + v2 + v3 全方案（自签名，Android 6.x 亦可安装） |
 | 方向 | 竖屏锁定，深色主题 `#0A0F1C`（含状态栏/导航栏） |
 
 ### 小米 15 Pro 安装步骤
-1. 把 `dist/zouzhe-v1.0.2.apk` 传到手机（微信文件传输助手 / USB / 网盘均可）。
+1. 把 `dist/zouzhe-v1.0.3.apk` 传到手机（微信文件传输助手 / USB / 网盘均可）。
 2. 点击 APK → 系统提示「未知来源应用」→ 允许当前来源安装。
 3. HyperOS 若弹「纯净模式」拦截，选择 **仍要安装**（或临时关闭纯净模式：设置 → 隐私与安全 → 纯净模式）。
 4. 安装后打开即用；**飞行模式下全部行程数据可用**，「唤起在线地图」直接拉起本机高德/百度等地图 App 搜索该地址。
 
-> 兼容性说明：小米 15 Pro（Android 15 / HyperOS 2）。targetSdk 34 避开 Android 15 强制 edge-to-edge，保证 WebView 内容不被状态栏遮挡；设计稿目标视口 412×915 即该机型逻辑分辨率，已按此视口冒烟验证渲染。
+### 兼容性
+- **系统版本**：Android 6.0+（minSdk 23）；targetSdk 34 避开 Android 15 强制 edge-to-edge，WebView 内容不被状态栏遮挡（小米 15 Pro / HyperOS 2 实测目标机型）
+- **WebView 内核**：页面运行时用到 `??` 等 ES2020 语法，需 **Chromium 80+**（2020 年后更新过的 Android System WebView / 厂商内核均满足）；启动时自动检测，内核过旧会弹窗引导更新而非白屏；个别无 WebView 组件的精简 ROM 会提示后优雅退出
+- **屏幕适配**：360–800px 逻辑宽度实测布局完好（360×640 / 360×800 / 393×873 / 412×915 / 480×1067 / 800×1280），超过 520px 内容居中（平板可用）；竖屏/触屏/多点触控均声明为非必需，平板、Chromebook、无通话功能设备可安装
+- **无 GMS 设备**（华为等）：不依赖 Google 服务；地图走 `geo:`/高德/百度 deeplink，系统自带地图亦可响应
 
 ## 功能（壳层职责）
 - WebView 加载 `assets/index.html`（自包含离线单文件），`domStorageEnabled` 开启 → 勾选/进度经 localStorage 持久化
@@ -40,7 +44,7 @@ design/                                   # 设计交付物（源文件/运行�
 scripts/                                  # 图标渲染（chromium headless + SVG）
 build.sh                                  # 构建脚本
 keystore/zouzhe.keystore                  # 签名密钥库（口令 zouzhe2026，仅自用侧载）
-dist/zouzhe-v1.0.2.apk                    # 交付安装包
+dist/zouzhe-v1.0.3.apk                    # 交付安装包
 ```
 
 ## 从源码构建
@@ -48,7 +52,7 @@ dist/zouzhe-v1.0.2.apk                    # 交付安装包
 
 ```bash
 apt-get install -y aapt apksigner zipalign dalvik-exchange android-sdk-platform-23 default-jdk
-./build.sh          # 产物: dist/zouzhe-v1.0.2.apk
+./build.sh          # 产物: dist/zouzhe-v1.0.3.apk
 ```
 
 管线：`aapt`(R.java) → `javac`(target 8) → `dx` → `aapt package`（resources.arsc 不压缩，满足 targetSdk 30+ 安装要求）→ `zipalign` → `apksigner`(v1+v2 签名，Android 7+ 实际启用 v2/v3)。

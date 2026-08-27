@@ -1,7 +1,9 @@
 package com.zouzhe.app;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
+import android.content.DialogInterface;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
@@ -55,7 +57,14 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        webView = new WebView(this);
+        try {
+            webView = new WebView(this);
+        } catch (Throwable t) {
+            // 个别精简 ROM 没有 WebView 组件，优雅退出而非崩溃
+            Toast.makeText(this, getString(R.string.no_webview), Toast.LENGTH_LONG).show();
+            finish();
+            return;
+        }
         webView.setBackgroundColor(BG);
 
         WebSettings s = webView.getSettings();
@@ -114,7 +123,53 @@ public class MainActivity extends Activity {
         });
 
         setContentView(webView);
+
+        // 页面运行时用到 ?? 等语法，需 Chromium 80+（2020 年后更新过的
+        // Android System WebView 均满足）；内核过旧时提示更新而非白屏报错
+        int chrome = chromeMajor(this);
+        if (chrome > 0 && chrome < 80) {
+            showOldWebViewDialog(chrome);
+        } else {
+            loadApp();
+        }
+    }
+
+    private void loadApp() {
         webView.loadUrl("file:///android_asset/index.html");
+    }
+
+    /** 从 WebView 默认 UA 解析 Chromium 主版本号；解析不出返回 -1（按可用处理）。 */
+    private static int chromeMajor(Context ctx) {
+        try {
+            String ua = WebSettings.getDefaultUserAgent(ctx);
+            int i = ua.indexOf("Chrome/");
+            if (i < 0) return -1;
+            int j = i + 7, k = j;
+            while (k < ua.length() && Character.isDigit(ua.charAt(k))) k++;
+            return Integer.parseInt(ua.substring(j, k));
+        } catch (Throwable t) {
+            return -1;
+        }
+    }
+
+    private void showOldWebViewDialog(int chrome) {
+        new AlertDialog.Builder(this)
+                .setTitle(getString(R.string.webview_old_title))
+                .setMessage(getString(R.string.webview_old_msg, chrome))
+                .setCancelable(false)
+                .setPositiveButton(R.string.webview_old_try, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface d, int w) {
+                        loadApp();
+                    }
+                })
+                .setNegativeButton(R.string.webview_old_exit, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface d, int w) {
+                        finish();
+                    }
+                })
+                .show();
     }
 
     private void openExternal(String url) {

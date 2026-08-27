@@ -2,4 +2,9 @@
 <resources>
     <string name="app_name">走着</string>
     <string name="no_app_found">未找到可处理该操作的应用</string>
+    <string name="no_webview">系统缺少 WebView 组件，无法运行本应用</string>
+    <string name="webview_old_title">WebView 内核过旧</string>
+    <string name="webview_old_msg">当前系统 WebView 内核为 Chrome %1$d，本应用需要 80 或更高版本。请在应用商店更新「Android System WebView」（或系统浏览器内核）后重试。</string>
+    <string name="webview_old_try">仍要尝试</string>
+    <string name="webview_old_exit">退出</string>
 </resources>

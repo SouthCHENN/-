@@ -1,14 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.zouzhe.app"
-    android:versionCode="3"
-    android:versionName="1.0.2">
+    android:versionCode="4"
+    android:versionName="1.0.3">
 
-    <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="34" />
+    <uses-sdk android:minSdkVersion="23" android:targetSdkVersion="34" />
 
     <!-- 仅用于 WebView 内 navigator.onLine 在线/离线指示；App 数据全离线 -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- 竖屏 Activity / 触屏会被隐式推断为硬件要求，显式放开，
+         平板、无触屏、Chromebook 等设备也可安装 -->
+    <uses-feature android:name="android.hardware.screen.portrait" android:required="false" />
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+    <uses-feature android:name="android.hardware.faketouch" android:required="false" />
 
     <application
         android:label="@string/app_name"
@@ -16,6 +22,7 @@
         android:allowBackup="true"
         android:supportsRtl="true"
         android:usesCleartextTraffic="false"
+        android:hardwareAccelerated="true"
         android:theme="@style/AppTheme">
 
         <activity
