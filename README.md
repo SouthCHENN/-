@@ -4,27 +4,27 @@
 
 ## 安装包
 
-**`dist/zouzhe-v1.0.1.apk`**（约 4.9 MB）
+**`dist/zouzhe-v1.0.2.apk`**（约 4.9 MB）
 
 | 项 | 值 |
 |---|---|
 | 包名 | `com.zouzhe.app` |
-| 版本 | 1.0.1 (versionCode 2) |
+| 版本 | 1.0.2 (versionCode 3) |
 | minSdk / targetSdk | 26 (Android 8.0) / 34 (Android 14) |
 | 签名 | APK Signature Scheme v2 + v3（自签名） |
 | 方向 | 竖屏锁定，深色主题 `#0A0F1C`（含状态栏/导航栏） |
 
 ### 小米 15 Pro 安装步骤
-1. 把 `dist/zouzhe-v1.0.1.apk` 传到手机（微信文件传输助手 / USB / 网盘均可）。
+1. 把 `dist/zouzhe-v1.0.2.apk` 传到手机（微信文件传输助手 / USB / 网盘均可）。
 2. 点击 APK → 系统提示「未知来源应用」→ 允许当前来源安装。
 3. HyperOS 若弹「纯净模式」拦截，选择 **仍要安装**（或临时关闭纯净模式：设置 → 隐私与安全 → 纯净模式）。
-4. 安装后打开即用；**飞行模式下全部行程数据可用**，仅「唤起在线地图」需联网。
+4. 安装后打开即用；**飞行模式下全部行程数据可用**，「唤起在线地图」直接拉起本机高德/百度等地图 App 搜索该地址。
 
 > 兼容性说明：小米 15 Pro（Android 15 / HyperOS 2）。targetSdk 34 避开 Android 15 强制 edge-to-edge，保证 WebView 内容不被状态栏遮挡；设计稿目标视口 412×915 即该机型逻辑分辨率，已按此视口冒烟验证渲染。
 
 ## 功能（壳层职责）
 - WebView 加载 `assets/index.html`（自包含离线单文件），`domStorageEnabled` 开启 → 勾选/进度经 localStorage 持久化
-- 拦截 `tel:` → 系统拨号盘；拦截外部 http(s)（Google Maps 等）→ 外部浏览器/地图 App
+- 拦截 `tel:` → 系统拨号盘；「唤起在线地图」解析出地址关键词后 deeplink 直拉本机地图 App（`geo:` 系统选择器 → 高德 `androidamap://` → 百度 `baidumap://` 逐级兜底，全部未装才回落浏览器）；其余外链 → 外部浏览器
 - `file://` 属非安全上下文，`navigator.clipboard` 不可用 → 注入 `ZouzheBridge` 剪贴板桥接，保证「复制地址/电话」可用
 - `textZoom=100` 锁定，系统字体缩放不破坏像素级设计稿布局
 - 返回键：WebView 有历史则后退，否则退出
@@ -40,7 +40,7 @@ design/                                   # 设计交付物（源文件/运行�
 scripts/                                  # 图标渲染（chromium headless + SVG）
 build.sh                                  # 构建脚本
 keystore/zouzhe.keystore                  # 签名密钥库（口令 zouzhe2026，仅自用侧载）
-dist/zouzhe-v1.0.1.apk                    # 交付安装包
+dist/zouzhe-v1.0.2.apk                    # 交付安装包
 ```
 
 ## 从源码构建
@@ -48,7 +48,7 @@ dist/zouzhe-v1.0.1.apk                    # 交付安装包
 
 ```bash
 apt-get install -y aapt apksigner zipalign dalvik-exchange android-sdk-platform-23 default-jdk
-./build.sh          # 产物: dist/zouzhe-v1.0.1.apk
+./build.sh          # 产物: dist/zouzhe-v1.0.2.apk
 ```
 
 管线：`aapt`(R.java) → `javac`(target 8) → `dx` → `aapt package`（resources.arsc 不压缩，满足 targetSdk 30+ 安装要求）→ `zipalign` → `apksigner`(v1+v2 签名，Android 7+ 实际启用 v2/v3)。

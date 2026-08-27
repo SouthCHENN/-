@@ -117,17 +117,71 @@ public class MainActivity extends Activity {
         webView.loadUrl("file:///android_asset/index.html");
     }
 
-    /** tel: 转拨号盘，其余（https 地图、mailto 等）交给外部 App。 */
     private void openExternal(String url) {
-        if (url == null) return;
-        Intent intent = url.startsWith("tel:")
-                ? new Intent(Intent.ACTION_DIAL, Uri.parse(url))
-                : new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-        try {
-            startActivity(intent);
-        } catch (ActivityNotFoundException e) {
-            Toast.makeText(this, getString(R.string.no_app_found), Toast.LENGTH_SHORT).show();
+        openExternal(this, url);
+    }
+
+    /**
+     * tel: 转拨号盘；Google Maps 链接转本机地图 App deeplink（国内访问不了
+     * google.com/maps 网页版）；其余（mailto 等）交给外部 App。
+     */
+    static void openExternal(Context ctx, String url) {
+        if (url == null || url.isEmpty()) return;
+        Intent intent;
+        if (url.startsWith("tel:")) {
+            intent = new Intent(Intent.ACTION_DIAL, Uri.parse(url));
+        } else {
+            String q = mapsQuery(url);
+            if (q != null && launchMapApp(ctx, q)) return;
+            intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
         }
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try {
+            ctx.startActivity(intent);
+        } catch (ActivityNotFoundException e) {
+            Toast.makeText(ctx, ctx.getString(R.string.no_app_found), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /** 从 Google Maps 链接提取搜索关键词（页面用 /maps/search/?api=1&query=…）。 */
+    private static String mapsQuery(String url) {
+        if (!url.contains("google.") || !url.contains("/maps")) return null;
+        try {
+            Uri u = Uri.parse(url);
+            String q = u.getQueryParameter("query");
+            if (q == null) q = u.getQueryParameter("q");
+            return (q == null || q.trim().isEmpty()) ? null : q.trim();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * 逐级尝试拉起本机地图 App：
+     *  1. geo: —— 系统弹地图应用选择器（高德/百度/Google Maps 都注册了该协议），
+     *     用户可选「始终」记住偏好
+     *  2. 高德 androidamap:// 关键词搜索
+     *  3. 百度 baidumap:// 地点搜索
+     * 全部未安装则返回 false，回落到浏览器打开原链接。
+     */
+    private static boolean launchMapApp(Context ctx, String query) {
+        String enc = Uri.encode(query);
+        String[] uris = {
+                "geo:0,0?q=" + enc,
+                "androidamap://poi?sourceApplication=zouzhe&keywords=" + enc + "&dev=0",
+                "baidumap://map/place/search?query=" + enc + "&src=zouzhe",
+        };
+        for (String u : uris) {
+            Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(u));
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            try {
+                ctx.startActivity(i);
+                return true;
+            } catch (ActivityNotFoundException e) {
+                // 试下一个
+            }
+        }
+        return false;
     }
 
     @Override
@@ -171,16 +225,7 @@ public class MainActivity extends Activity {
             main.post(new Runnable() {
                 @Override
                 public void run() {
-                    Intent intent = url.startsWith("tel:")
-                            ? new Intent(Intent.ACTION_DIAL, Uri.parse(url))
-                            : new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    try {
-                        ctx.startActivity(intent);
-                    } catch (ActivityNotFoundException e) {
-                        Toast.makeText(ctx, ctx.getString(R.string.no_app_found),
-                                Toast.LENGTH_SHORT).show();
-                    }
+                    MainActivity.openExternal(ctx, url);
                 }
             });
         }
