@@ -184,5 +184,40 @@
     return { city: String(parsed.city || '').trim(), days: days };
   }
 
-  return { extract: extract, PRESETS: PRESETS, _looseJson: looseJson, SYSTEM: SYSTEM };
+  /** 最小验证调用：只发一句话验 key/endpoint/模型三件事，花费可忽略。
+   *  返回模型回的文本；失败时抛 ZZError（CORS/401/模型名错等原样透出）。 */
+  async function ping(cfg) {
+    if (!cfg.endpoint) throw Net.ZZError('config', '没有填 endpoint');
+    if (!cfg.apiKey) throw Net.ZZError('config', '没有填 API Key');
+    if (!cfg.model) throw Net.ZZError('config', '没有填模型名/接入点 ID');
+    var req;
+    if (cfg.dialect === 'anthropic') {
+      req = {
+        headers: { 'Content-Type': 'application/json', 'x-api-key': cfg.apiKey,
+          'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+        body: JSON.stringify({ model: cfg.model, max_tokens: 8,
+          messages: [{ role: 'user', content: '回复OK两个字' }] }),
+        pick: function (j) {
+          return ((j.content || []).filter(function (b) { return b.type === 'text'; })[0] || {}).text || '(空)';
+        },
+      };
+    } else {
+      req = {
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfg.apiKey },
+        body: JSON.stringify({ model: cfg.model, max_tokens: 8,
+          messages: [{ role: 'user', content: '回复OK两个字' }] }),
+        pick: function (j) {
+          var m = j.choices && j.choices[0] && j.choices[0].message;
+          if (!m) throw Net.ZZError('parse', '返回结构不符合 OpenAI 兼容格式', JSON.stringify(j).slice(0, 300));
+          return typeof m.content === 'string' ? m.content : JSON.stringify(m.content);
+        },
+      };
+    }
+    var j = await Net.request(cfg.endpoint, {
+      method: 'POST', headers: req.headers, body: req.body, proxy: cfg.proxy, timeoutMs: 30000,
+    });
+    return String(req.pick(j)).slice(0, 40);
+  }
+
+  return { extract: extract, ping: ping, PRESETS: PRESETS, _looseJson: looseJson, SYSTEM: SYSTEM };
 });

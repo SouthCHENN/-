@@ -89,6 +89,8 @@
     <label>Endpoint</label><input id="endpoint" placeholder="https://...">
     <label>模型名 / 接入点 ID</label><input id="model" placeholder="qwen-vl-max 或 ep-xxxxx">
     <label>API Key</label><input id="apiKey" type="password" placeholder="sk-...">
+    <button class="btn ghost" id="btnTestVision">测一下（发一句话，花费忽略不计）</button>
+    <div id="testVisionOut"></div>
     <div class="hint">
       千问和豆包的 endpoint 与模型名<b>没能一手核对</b>（构建环境访问不了 help.aliyun.com / volcengine.com），
       按公开检索填的默认值，以官方控制台为准，填错了在这里改即可。
@@ -101,6 +103,8 @@
     <label>服务商</label>
     <select id="geoProvider"><option value="baidu">百度地图</option><option value="amap">高德地图</option></select>
     <label>AK / Key</label><input id="geoAk" type="password" placeholder="服务端类型的 Key">
+    <button class="btn ghost" id="btnTestGeo">测一下（搜「天安门」）</button>
+    <div id="testGeoOut"></div>
     <div class="note">百度：lbsyun.baidu.com 创建「服务端」应用并开通地点检索。高德：console.amap.com 创建「Web服务」Key。
     没填时会退而求其次用免费的 OpenStreetMap 定位——能用但成功率和精度都更低，建议填。</div>
   </details>

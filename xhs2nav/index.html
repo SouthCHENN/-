@@ -254,6 +254,8 @@ details>*:not(summary){margin-bottom:12px}
     <label>Endpoint</label><input id="endpoint" placeholder="https://...">
     <label>模型名 / 接入点 ID</label><input id="model" placeholder="qwen-vl-max 或 ep-xxxxx">
     <label>API Key</label><input id="apiKey" type="password" placeholder="sk-...">
+    <button class="btn ghost" id="btnTestVision">测一下（发一句话，花费忽略不计）</button>
+    <div id="testVisionOut"></div>
     <div class="hint">
       千问和豆包的 endpoint 与模型名<b>没能一手核对</b>（构建环境访问不了 help.aliyun.com / volcengine.com），
       按公开检索填的默认值，以官方控制台为准，填错了在这里改即可。
@@ -266,6 +268,8 @@ details>*:not(summary){margin-bottom:12px}
     <label>服务商</label>
     <select id="geoProvider"><option value="baidu">百度地图</option><option value="amap">高德地图</option></select>
     <label>AK / Key</label><input id="geoAk" type="password" placeholder="服务端类型的 Key">
+    <button class="btn ghost" id="btnTestGeo">测一下（搜「天安门」）</button>
+    <div id="testGeoOut"></div>
     <div class="note">百度：lbsyun.baidu.com 创建「服务端」应用并开通地点检索。高德：console.amap.com 创建「Web服务」Key。
     没填时会退而求其次用免费的 OpenStreetMap 定位——能用但成功率和精度都更低，建议填。</div>
   </details>
@@ -1209,7 +1213,42 @@ Day2️⃣
     return { city: String(parsed.city || '').trim(), days: days };
   }
 
-  return { extract: extract, PRESETS: PRESETS, _looseJson: looseJson, SYSTEM: SYSTEM };
+  /** 最小验证调用：只发一句话验 key/endpoint/模型三件事，花费可忽略。
+   *  返回模型回的文本；失败时抛 ZZError（CORS/401/模型名错等原样透出）。 */
+  async function ping(cfg) {
+    if (!cfg.endpoint) throw Net.ZZError('config', '没有填 endpoint');
+    if (!cfg.apiKey) throw Net.ZZError('config', '没有填 API Key');
+    if (!cfg.model) throw Net.ZZError('config', '没有填模型名/接入点 ID');
+    var req;
+    if (cfg.dialect === 'anthropic') {
+      req = {
+        headers: { 'Content-Type': 'application/json', 'x-api-key': cfg.apiKey,
+          'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+        body: JSON.stringify({ model: cfg.model, max_tokens: 8,
+          messages: [{ role: 'user', content: '回复OK两个字' }] }),
+        pick: function (j) {
+          return ((j.content || []).filter(function (b) { return b.type === 'text'; })[0] || {}).text || '(空)';
+        },
+      };
+    } else {
+      req = {
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfg.apiKey },
+        body: JSON.stringify({ model: cfg.model, max_tokens: 8,
+          messages: [{ role: 'user', content: '回复OK两个字' }] }),
+        pick: function (j) {
+          var m = j.choices && j.choices[0] && j.choices[0].message;
+          if (!m) throw Net.ZZError('parse', '返回结构不符合 OpenAI 兼容格式', JSON.stringify(j).slice(0, 300));
+          return typeof m.content === 'string' ? m.content : JSON.stringify(m.content);
+        },
+      };
+    }
+    var j = await Net.request(cfg.endpoint, {
+      method: 'POST', headers: req.headers, body: req.body, proxy: cfg.proxy, timeoutMs: 30000,
+    });
+    return String(req.pick(j)).slice(0, 40);
+  }
+
+  return { extract: extract, ping: ping, PRESETS: PRESETS, _looseJson: looseJson, SYSTEM: SYSTEM };
 });
 
 ;
@@ -1808,6 +1847,34 @@ Day2️⃣
       if (b) { copy(b.dataset.url); }
     });
 
+    $('#btnTestVision').onclick = async function () {
+      var out = $('#testVisionOut');
+      out.innerHTML = '<span class="spin"></span> 正在调用…';
+      try {
+        var t = await ZZVision.ping({
+          dialect: (ZZVision.PRESETS[S.cfg.visionPreset] || {}).dialect || 'openai',
+          endpoint: S.cfg.endpoint, model: S.cfg.model, apiKey: S.cfg.apiKey, proxy: S.cfg.proxy,
+        });
+        out.innerHTML = '<div class="note" style="color:var(--ok)">✓ 识别 Key 可用，模型回了：' + esc(t) + '</div>';
+      } catch (e) {
+        out.innerHTML = '<div class="note err">✗ ' + esc(e.message) + '</div>' +
+          (e.detail ? '<div class="note">' + esc(String(e.detail).slice(0, 300)) + '</div>' : '');
+      }
+    };
+    $('#btnTestGeo').onclick = async function () {
+      var out = $('#testGeoOut');
+      var provider = S.cfg.geoAk ? S.cfg.geoProvider : 'osm';
+      out.innerHTML = '<span class="spin"></span> 正在用' +
+        (provider === 'osm' ? ' OSM（未填Key的兜底）' : (provider === 'amap' ? '高德' : '百度')) + '搜「天安门」…';
+      var res = await ZZGeo.resolveAll([{ name: '天安门' }], {
+        provider: provider, ak: S.cfg.geoAk, proxy: S.cfg.proxy, city: '北京',
+      });
+      var r = res[0];
+      out.innerHTML = r.resolved
+        ? '<div class="note" style="color:var(--ok)">✓ 定位可用：' + esc(r.matched || '天安门') +
+          '（' + r.lon.toFixed(4) + ', ' + r.lat.toFixed(4) + '）</div>'
+        : '<div class="note err">✗ ' + esc(r.error || '失败') + '</div>';
+    };
     $('#visionPreset').onchange = function (e) { applyPreset(e.target.value); save(); renderCfg(); };
     [['endpoint', 'endpoint'], ['model', 'model'], ['apiKey', 'apiKey'],
      ['geoProvider', 'geoProvider'], ['geoAk', 'geoAk'], ['proxy', 'proxy']].forEach(function (p) {

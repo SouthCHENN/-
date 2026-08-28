@@ -370,6 +370,34 @@
       if (b) { copy(b.dataset.url); }
     });
 
+    $('#btnTestVision').onclick = async function () {
+      var out = $('#testVisionOut');
+      out.innerHTML = '<span class="spin"></span> 正在调用…';
+      try {
+        var t = await ZZVision.ping({
+          dialect: (ZZVision.PRESETS[S.cfg.visionPreset] || {}).dialect || 'openai',
+          endpoint: S.cfg.endpoint, model: S.cfg.model, apiKey: S.cfg.apiKey, proxy: S.cfg.proxy,
+        });
+        out.innerHTML = '<div class="note" style="color:var(--ok)">✓ 识别 Key 可用，模型回了：' + esc(t) + '</div>';
+      } catch (e) {
+        out.innerHTML = '<div class="note err">✗ ' + esc(e.message) + '</div>' +
+          (e.detail ? '<div class="note">' + esc(String(e.detail).slice(0, 300)) + '</div>' : '');
+      }
+    };
+    $('#btnTestGeo').onclick = async function () {
+      var out = $('#testGeoOut');
+      var provider = S.cfg.geoAk ? S.cfg.geoProvider : 'osm';
+      out.innerHTML = '<span class="spin"></span> 正在用' +
+        (provider === 'osm' ? ' OSM（未填Key的兜底）' : (provider === 'amap' ? '高德' : '百度')) + '搜「天安门」…';
+      var res = await ZZGeo.resolveAll([{ name: '天安门' }], {
+        provider: provider, ak: S.cfg.geoAk, proxy: S.cfg.proxy, city: '北京',
+      });
+      var r = res[0];
+      out.innerHTML = r.resolved
+        ? '<div class="note" style="color:var(--ok)">✓ 定位可用：' + esc(r.matched || '天安门') +
+          '（' + r.lon.toFixed(4) + ', ' + r.lat.toFixed(4) + '）</div>'
+        : '<div class="note err">✗ ' + esc(r.error || '失败') + '</div>';
+    };
     $('#visionPreset').onchange = function (e) { applyPreset(e.target.value); save(); renderCfg(); };
     [['endpoint', 'endpoint'], ['model', 'model'], ['apiKey', 'apiKey'],
      ['geoProvider', 'geoProvider'], ['geoAk', 'geoAk'], ['proxy', 'proxy']].forEach(function (p) {
