@@ -1,0 +1,116 @@
+/* 照着走 · 样式（沿用「走着」设计 token） */
+:root{
+  --bg:#0A0F1C; --panel:#0D1424; --card:rgba(255,255,255,.03);
+  --cyan:#00F0FF; --mag:#FF2E88; --green:#2EE86C; --amber:#FFB53D;
+  --t1:#D8E6F0; --t2:#9FB6C9; --t3:#5E7186; --t4:#3A4A5C;
+  --line:rgba(0,240,255,.18);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:#05070D;color:var(--t1);
+  font-family:"PingFang SC","Noto Sans SC","Microsoft YaHei",system-ui,-apple-system,sans-serif;
+  font-size:14px;line-height:1.55;-webkit-text-size-adjust:100%}
+.mono{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace}
+#app{max-width:520px;margin:0 auto;background:var(--bg);min-height:100vh;
+  padding-bottom:calc(32px + env(safe-area-inset-bottom))}
+
+/* 顶栏 */
+header{position:sticky;top:0;z-index:20;background:var(--bg);
+  border-bottom:1px solid var(--line);padding:12px 16px;display:flex;align-items:center;gap:10px}
+.wm{font-size:19px;font-weight:900;color:var(--cyan);text-shadow:0 0 12px rgba(0,240,255,.5);letter-spacing:.5px}
+.sub{font-size:11px;color:var(--t3);flex:1}
+.env{font-size:10px;padding:3px 7px;border:1px solid var(--t4);color:var(--t2);border-radius:2px;white-space:nowrap}
+.env.warn{border-color:var(--mag);color:var(--mag);background:rgba(255,46,136,.08)}
+
+section{padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.05)}
+h2{font-size:12px;font-weight:700;color:var(--t2);margin:0 0 10px;letter-spacing:1px;
+  display:flex;align-items:center;gap:8px}
+h2 .n{font-size:10px;color:var(--bg);background:var(--cyan);width:16px;height:16px;
+  display:inline-flex;align-items:center;justify-content:center;border-radius:2px;font-weight:900}
+
+/* 微信横幅 */
+.wxbar{display:none;margin:0;padding:12px 16px;background:rgba(255,46,136,.1);
+  border-bottom:1px solid var(--mag);color:var(--mag);font-size:12px;line-height:1.6}
+.wxbar.on{display:block}
+
+/* 输入 */
+.tabs{display:flex;gap:0;margin-bottom:10px;border:1px solid var(--line);border-radius:2px;overflow:hidden}
+.tabs button{flex:1;min-height:40px;background:transparent;border:none;color:var(--t2);
+  font-size:13px;font-family:inherit;cursor:pointer;padding:0}
+.tabs button.on{background:rgba(0,240,255,.12);color:var(--cyan);font-weight:700}
+textarea{width:100%;min-height:150px;background:var(--panel);border:1px solid var(--line);
+  color:var(--t1);border-radius:2px;padding:10px;font-family:inherit;font-size:13px;resize:vertical}
+textarea:focus,input:focus,select:focus{outline:none;border-color:var(--cyan);
+  box-shadow:0 0 0 1px rgba(0,240,255,.3)}
+input,select{width:100%;min-height:40px;background:var(--panel);border:1px solid var(--line);
+  color:var(--t1);border-radius:2px;padding:0 10px;font-family:inherit;font-size:13px}
+input::placeholder,textarea::placeholder{color:var(--t4)}
+label{display:block;font-size:11px;color:var(--t3);margin:10px 0 4px}
+.row{display:flex;gap:8px}.row>*{flex:1;min-width:0}
+
+button.btn{min-height:44px;padding:0 16px;border-radius:2px;font-family:inherit;font-size:14px;
+  font-weight:700;cursor:pointer;border:1px solid var(--cyan);background:var(--cyan);color:#05070D;
+  width:100%;margin-top:10px}
+button.btn.ghost{background:transparent;color:var(--cyan)}
+button.btn.mag{border-color:var(--mag);color:var(--mag);background:transparent}
+button.btn:disabled{opacity:.4;cursor:not-allowed}
+.filebtn{display:block;text-align:center;min-height:44px;line-height:44px;border:1px dashed var(--line);
+  border-radius:2px;color:var(--cyan);cursor:pointer;font-size:14px}
+.thumbs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.thumbs img{width:56px;height:56px;object-fit:cover;border:1px solid var(--line);border-radius:2px}
+
+/* 地点列表 */
+.day{margin-bottom:14px}
+.daylabel{font-size:11px;color:var(--mag);font-weight:700;margin-bottom:6px;letter-spacing:1px}
+.stop{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid rgba(255,255,255,.06);
+  border-radius:2px;padding:8px;margin-bottom:6px}
+.stop.low{border-left:2px solid var(--amber)}
+.stop.ok{border-left:2px solid var(--green)}
+.stop.bad{border-left:2px solid var(--mag)}
+.stop .idx{font-size:10px;color:var(--t3);width:18px;text-align:center;flex:none}
+.stop .body{flex:1;min-width:0}
+.stop .nm{width:100%;background:transparent;border:none;color:var(--t1);font-size:14px;
+  padding:2px 0;min-height:24px}
+.stop .meta{font-size:10px;color:var(--t3);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stop .meta.err{color:var(--mag)}
+.stop .meta.hit{color:var(--green)}
+.stop .ops{display:flex;flex-direction:column;gap:2px;flex:none}
+.stop .ops button{width:30px;height:22px;background:transparent;border:1px solid rgba(255,255,255,.1);
+  color:var(--t2);border-radius:2px;cursor:pointer;font-size:11px;line-height:1;padding:0}
+.stop .ops button:active{background:rgba(0,240,255,.15)}
+.stop .del{width:30px;height:46px;background:transparent;border:1px solid rgba(255,46,136,.3);
+  color:var(--mag);border-radius:2px;cursor:pointer;flex:none;font-size:14px}
+
+/* 输出 */
+.plan{border:1px solid var(--line);border-radius:2px;margin-bottom:12px;overflow:hidden}
+.plan>.hd{background:rgba(0,240,255,.07);padding:8px 10px}
+.plan>.hd .t{font-size:13px;font-weight:700;color:var(--cyan)}
+.plan>.hd .n{font-size:10px;color:var(--t2);margin-top:2px;line-height:1.5}
+.leg{padding:9px 10px;border-top:1px solid rgba(255,255,255,.06)}
+.leg .path{font-size:11px;color:var(--t2);margin-bottom:7px;word-break:break-all}
+.leg .path b{color:var(--t1);font-weight:500}
+.leg .path .via{color:var(--mag)}
+.lk{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.lk a{flex:1;display:block;min-height:38px;line-height:38px;text-align:center;
+  background:rgba(0,240,255,.1);border:1px solid var(--cyan);color:var(--cyan);
+  text-decoration:none;border-radius:2px;font-size:13px;font-weight:700}
+.lk a.alt{background:transparent;border-color:rgba(255,255,255,.15);color:var(--t2);font-weight:400}
+.lk .cp{width:44px;height:38px;flex:none;background:transparent;border:1px solid rgba(255,255,255,.15);
+  color:var(--t2);border-radius:2px;cursor:pointer;font-size:11px}
+.lk .ev{font-size:9px;color:var(--t3);white-space:nowrap;flex:none;max-width:96px;overflow:hidden;text-overflow:ellipsis}
+
+/* 提示 */
+.note{font-size:11px;color:var(--t3);line-height:1.6;margin-top:8px}
+.note.warn{color:var(--amber)}
+.note.err{color:var(--mag)}
+.hint{background:rgba(255,181,61,.08);border:1px solid rgba(255,181,61,.3);
+  padding:8px 10px;border-radius:2px;font-size:11px;color:var(--amber);line-height:1.6;margin-top:8px}
+details{margin-top:8px}
+summary{cursor:pointer;font-size:12px;color:var(--t2);min-height:32px;line-height:32px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:60px;z-index:99;
+  background:rgba(13,20,36,.96);border:1px solid var(--cyan);color:var(--cyan);
+  padding:9px 16px;border-radius:2px;font-size:13px;opacity:0;transition:opacity .2s;
+  pointer-events:none;max-width:88%;text-align:center}
+.toast.on{opacity:1}
+.spin{display:inline-block;width:11px;height:11px;border:2px solid rgba(0,240,255,.25);
+  border-top-color:var(--cyan);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-1px}
+@keyframes sp{to{transform:rotate(360deg)}}

@@ -1,0 +1,1655 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>照着走 · 截图转多段导航</title>
+<style>/* 照着走 · 样式（沿用「走着」设计 token） */
+:root{
+  --bg:#0A0F1C; --panel:#0D1424; --card:rgba(255,255,255,.03);
+  --cyan:#00F0FF; --mag:#FF2E88; --green:#2EE86C; --amber:#FFB53D;
+  --t1:#D8E6F0; --t2:#9FB6C9; --t3:#5E7186; --t4:#3A4A5C;
+  --line:rgba(0,240,255,.18);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:#05070D;color:var(--t1);
+  font-family:"PingFang SC","Noto Sans SC","Microsoft YaHei",system-ui,-apple-system,sans-serif;
+  font-size:14px;line-height:1.55;-webkit-text-size-adjust:100%}
+.mono{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace}
+#app{max-width:520px;margin:0 auto;background:var(--bg);min-height:100vh;
+  padding-bottom:calc(32px + env(safe-area-inset-bottom))}
+
+/* 顶栏 */
+header{position:sticky;top:0;z-index:20;background:var(--bg);
+  border-bottom:1px solid var(--line);padding:12px 16px;display:flex;align-items:center;gap:10px}
+.wm{font-size:19px;font-weight:900;color:var(--cyan);text-shadow:0 0 12px rgba(0,240,255,.5);letter-spacing:.5px}
+.sub{font-size:11px;color:var(--t3);flex:1}
+.env{font-size:10px;padding:3px 7px;border:1px solid var(--t4);color:var(--t2);border-radius:2px;white-space:nowrap}
+.env.warn{border-color:var(--mag);color:var(--mag);background:rgba(255,46,136,.08)}
+
+section{padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.05)}
+h2{font-size:12px;font-weight:700;color:var(--t2);margin:0 0 10px;letter-spacing:1px;
+  display:flex;align-items:center;gap:8px}
+h2 .n{font-size:10px;color:var(--bg);background:var(--cyan);width:16px;height:16px;
+  display:inline-flex;align-items:center;justify-content:center;border-radius:2px;font-weight:900}
+
+/* 微信横幅 */
+.wxbar{display:none;margin:0;padding:12px 16px;background:rgba(255,46,136,.1);
+  border-bottom:1px solid var(--mag);color:var(--mag);font-size:12px;line-height:1.6}
+.wxbar.on{display:block}
+
+/* 输入 */
+.tabs{display:flex;gap:0;margin-bottom:10px;border:1px solid var(--line);border-radius:2px;overflow:hidden}
+.tabs button{flex:1;min-height:40px;background:transparent;border:none;color:var(--t2);
+  font-size:13px;font-family:inherit;cursor:pointer;padding:0}
+.tabs button.on{background:rgba(0,240,255,.12);color:var(--cyan);font-weight:700}
+textarea{width:100%;min-height:150px;background:var(--panel);border:1px solid var(--line);
+  color:var(--t1);border-radius:2px;padding:10px;font-family:inherit;font-size:13px;resize:vertical}
+textarea:focus,input:focus,select:focus{outline:none;border-color:var(--cyan);
+  box-shadow:0 0 0 1px rgba(0,240,255,.3)}
+input,select{width:100%;min-height:40px;background:var(--panel);border:1px solid var(--line);
+  color:var(--t1);border-radius:2px;padding:0 10px;font-family:inherit;font-size:13px}
+input::placeholder,textarea::placeholder{color:var(--t4)}
+label{display:block;font-size:11px;color:var(--t3);margin:10px 0 4px}
+.row{display:flex;gap:8px}.row>*{flex:1;min-width:0}
+
+button.btn{min-height:44px;padding:0 16px;border-radius:2px;font-family:inherit;font-size:14px;
+  font-weight:700;cursor:pointer;border:1px solid var(--cyan);background:var(--cyan);color:#05070D;
+  width:100%;margin-top:10px}
+button.btn.ghost{background:transparent;color:var(--cyan)}
+button.btn.mag{border-color:var(--mag);color:var(--mag);background:transparent}
+button.btn:disabled{opacity:.4;cursor:not-allowed}
+.filebtn{display:block;text-align:center;min-height:44px;line-height:44px;border:1px dashed var(--line);
+  border-radius:2px;color:var(--cyan);cursor:pointer;font-size:14px}
+.thumbs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.thumbs img{width:56px;height:56px;object-fit:cover;border:1px solid var(--line);border-radius:2px}
+
+/* 地点列表 */
+.day{margin-bottom:14px}
+.daylabel{font-size:11px;color:var(--mag);font-weight:700;margin-bottom:6px;letter-spacing:1px}
+.stop{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid rgba(255,255,255,.06);
+  border-radius:2px;padding:8px;margin-bottom:6px}
+.stop.low{border-left:2px solid var(--amber)}
+.stop.ok{border-left:2px solid var(--green)}
+.stop.bad{border-left:2px solid var(--mag)}
+.stop .idx{font-size:10px;color:var(--t3);width:18px;text-align:center;flex:none}
+.stop .body{flex:1;min-width:0}
+.stop .nm{width:100%;background:transparent;border:none;color:var(--t1);font-size:14px;
+  padding:2px 0;min-height:24px}
+.stop .meta{font-size:10px;color:var(--t3);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stop .meta.err{color:var(--mag)}
+.stop .meta.hit{color:var(--green)}
+.stop .ops{display:flex;flex-direction:column;gap:2px;flex:none}
+.stop .ops button{width:30px;height:22px;background:transparent;border:1px solid rgba(255,255,255,.1);
+  color:var(--t2);border-radius:2px;cursor:pointer;font-size:11px;line-height:1;padding:0}
+.stop .ops button:active{background:rgba(0,240,255,.15)}
+.stop .del{width:30px;height:46px;background:transparent;border:1px solid rgba(255,46,136,.3);
+  color:var(--mag);border-radius:2px;cursor:pointer;flex:none;font-size:14px}
+
+/* 输出 */
+.plan{border:1px solid var(--line);border-radius:2px;margin-bottom:12px;overflow:hidden}
+.plan>.hd{background:rgba(0,240,255,.07);padding:8px 10px}
+.plan>.hd .t{font-size:13px;font-weight:700;color:var(--cyan)}
+.plan>.hd .n{font-size:10px;color:var(--t2);margin-top:2px;line-height:1.5}
+.leg{padding:9px 10px;border-top:1px solid rgba(255,255,255,.06)}
+.leg .path{font-size:11px;color:var(--t2);margin-bottom:7px;word-break:break-all}
+.leg .path b{color:var(--t1);font-weight:500}
+.leg .path .via{color:var(--mag)}
+.lk{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.lk a{flex:1;display:block;min-height:38px;line-height:38px;text-align:center;
+  background:rgba(0,240,255,.1);border:1px solid var(--cyan);color:var(--cyan);
+  text-decoration:none;border-radius:2px;font-size:13px;font-weight:700}
+.lk a.alt{background:transparent;border-color:rgba(255,255,255,.15);color:var(--t2);font-weight:400}
+.lk .cp{width:44px;height:38px;flex:none;background:transparent;border:1px solid rgba(255,255,255,.15);
+  color:var(--t2);border-radius:2px;cursor:pointer;font-size:11px}
+.lk .ev{font-size:9px;color:var(--t3);white-space:nowrap;flex:none;max-width:96px;overflow:hidden;text-overflow:ellipsis}
+
+/* 提示 */
+.note{font-size:11px;color:var(--t3);line-height:1.6;margin-top:8px}
+.note.warn{color:var(--amber)}
+.note.err{color:var(--mag)}
+.hint{background:rgba(255,181,61,.08);border:1px solid rgba(255,181,61,.3);
+  padding:8px 10px;border-radius:2px;font-size:11px;color:var(--amber);line-height:1.6;margin-top:8px}
+details{margin-top:8px}
+summary{cursor:pointer;font-size:12px;color:var(--t2);min-height:32px;line-height:32px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:60px;z-index:99;
+  background:rgba(13,20,36,.96);border:1px solid var(--cyan);color:var(--cyan);
+  padding:9px 16px;border-radius:2px;font-size:13px;opacity:0;transition:opacity .2s;
+  pointer-events:none;max-width:88%;text-align:center}
+.toast.on{opacity:1}
+.spin{display:inline-block;width:11px;height:11px;border:2px solid rgba(0,240,255,.25);
+  border-top-color:var(--cyan);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-1px}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div id="app">
+
+<header>
+  <span class="wm">照着走</span>
+  <span class="sub">小红书行程 → 地图多段导航</span>
+  <span class="env" id="env"></span>
+</header>
+
+<div class="wxbar" id="wxbar">
+  <b>微信内打不开地图 App。</b>微信只对合作方放行 scheme 唤起，高德/百度不在白名单里，没有参数能绕过。
+  请点右上角 <b>···</b> → <b>在浏览器中打开</b>，再回到这一步。
+</div>
+
+<section>
+  <h2><span class="n">1</span>放进行程</h2>
+  <div class="tabs">
+    <button id="tabText">粘贴文案</button>
+    <button id="tabImg">选截图</button>
+  </div>
+
+  <div id="paneText">
+    <textarea id="text" placeholder="把小红书笔记的文案粘贴进来&#10;&#10;支持 Day1/第一天 分天、1️⃣ 序号、09:00 时间线、A→B→C 箭头串联"></textarea>
+    <button class="btn" id="btnParse">解析文案</button>
+    <button class="btn ghost" id="btnDemo">填入示例看看效果</button>
+    <div class="note">纯本地解析，不联网，不上传。</div>
+  </div>
+
+  <div id="paneImg" style="display:none">
+    <label class="filebtn" for="file">＋ 选择截图（最多 8 张）</label>
+    <input type="file" id="file" accept="image/*" multiple style="display:none;position:absolute">
+    <div class="thumbs" id="thumbs"></div>
+    <button class="btn" id="btnExtract">识别截图</button>
+    <div id="visionStatus"></div>
+    <div class="note">图片会压到长边 1600px 后上传给你在设置里配的模型。要先填 endpoint / 模型 / Key。</div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="n">2</span>核对地点 <span class="sub mono" id="stopCount"></span></h2>
+  <div id="stops"></div>
+  <div class="row">
+    <button class="btn ghost" id="btnAdd">＋ 手动添加</button>
+    <button class="btn mag" id="btnClear">清空</button>
+  </div>
+  <div class="note">上下箭头调顺序，点名字可直接改。<span style="color:var(--amber)">橙边</span>=拿不准是不是地点，<span style="color:var(--green)">绿边</span>=已拿到坐标。</div>
+</section>
+
+<section>
+  <h2><span class="n">3</span>定位（可选，但决定能否带途经点）</h2>
+  <div class="row">
+    <div><label>城市（消歧用）</label><input id="city" placeholder="深圳"></div>
+    <div><label>出行方式</label>
+      <select id="mode"><option value="car">驾车</option><option value="bus">公交</option>
+        <option value="walk">步行</option><option value="ride">骑行</option></select></div>
+  </div>
+  <button class="btn ghost" id="btnGeo">解析坐标</button>
+  <div id="geoStatus"></div>
+  <div class="note">
+    不做这步也能出链接，但只能<b>逐段导航</b>（每段 A→B 用地名直传）。
+    高德的 <span class="mono">vialons/vialats</span> 和百度的 <span class="mono">viaPoints</span> 都要求经纬度，只给名字传不了途经点。
+  </div>
+</section>
+
+<section>
+  <h2><span class="n">4</span>生成链接</h2>
+  <label style="display:flex;align-items:center;gap:8px;margin:0 0 8px">
+    <input type="checkbox" id="originIsMe" style="width:auto;min-height:0"> 用「我的位置」当起点（第一个地点变成途经点）
+  </label>
+  <button class="btn" id="btnBuild">生成导航链接</button>
+  <div id="out"></div>
+</section>
+
+<section>
+  <h2>设置</h2>
+  <details>
+    <summary>识别模型（图片识别才需要）</summary>
+    <label>服务商</label>
+    <select id="visionPreset">
+      <option value="qwen">通义千问 VL（阿里百炼）</option>
+      <option value="doubao">豆包 视觉（火山方舟）</option>
+      <option value="claude">Claude（Anthropic）</option>
+      <option value="custom">自定义（OpenAI 兼容）</option>
+    </select>
+    <div class="note" id="presetNote"></div>
+    <label>Endpoint</label><input id="endpoint" placeholder="https://...">
+    <label>模型名 / 接入点 ID</label><input id="model" placeholder="qwen-vl-max 或 ep-xxxxx">
+    <label>API Key</label><input id="apiKey" type="password" placeholder="sk-...">
+    <div class="hint">
+      千问和豆包的 endpoint 与模型名我<b>没能一手核对</b>（本机访问不了 help.aliyun.com / volcengine.com），
+      按公开检索填的默认值，以官方控制台为准，填错了在这里改即可。
+      豆包的 model 通常是控制台<b>接入点 ID（ep- 开头）</b>而不是模型名。
+    </div>
+  </details>
+
+  <details>
+    <summary>地图 Key（解析坐标才需要）</summary>
+    <label>服务商</label>
+    <select id="geoProvider"><option value="baidu">百度地图</option><option value="amap">高德地图</option></select>
+    <label>AK / Key</label><input id="geoAk" type="password" placeholder="服务端类型的 Key">
+    <div class="note">百度：lbsyun.baidu.com 创建「服务端」应用并开通地点检索。高德：console.amap.com 创建「Web服务」Key。</div>
+  </details>
+
+  <details>
+    <summary>代理（撞 CORS 时才需要）</summary>
+    <label>代理地址</label><input id="proxy" placeholder="https://xxx.workers.dev">
+    <div class="note">
+      浏览器直连大模型和地图的服务端 API 大概率被 CORS 拦。填了代理后，所有外部请求会转发过去。
+      仓库里的 <span class="mono">proxy/worker.js</span> 是一个可直接部署到 Cloudflare Workers 的最小实现。
+    </div>
+  </details>
+
+  <details>
+    <summary>高德途经点上限</summary>
+    <label style="display:flex;align-items:center;gap:8px">
+      <input type="checkbox" id="amapLoose" style="width:auto;min-height:0"> 放宽到 10 个（默认 3 个）
+    </label>
+    <div class="note">
+      3 个是两家都保证的安全值（百度官方明文上限，也是高德 App 里手动添加的上限）。
+      高德官方活动页发出过 vian=10 的链接，所以 10 个可能可行，<b>但我没有实测条件</b>——
+      超限是全生效、被截断还是整条失败，未知。
+    </div>
+  </details>
+</section>
+
+<section>
+  <h2>这个工具能做到什么</h2>
+  <div class="note">
+    <b>已核实</b>：百度 <span class="mono">baidumap://map/navi</span> 带 <span class="mono">viaPoints</span> 可以带途经点<b>直接进导航态</b>（官方文档 + 官方 Android SDK 反编译源码双重佐证），官方上限 3 个途经点。<br><br>
+    <b>已核实</b>：高德带途经点只能落到<b>路线规划页</b>，需要再点一次「开始导航」——
+    能一键直达导航的 <span class="mono">androidamap://navi</span> 结构上没有途经点参数位。<br><br>
+    <b>待你实测</b>：高德的 <span class="mono">vian/vialons/vialats/vianames</span> 未进官方参数表（证据是高德自家 JS API 源码和官方活动页在用）；
+    百度 <span class="mono">direction</span> 上的 viaPoints 官方文档有示例但官方 SDK 没拼。这两条都得在真机上点一次才知道。<br><br>
+    详见仓库里的 <span class="mono">RESEARCH.md</span>，每条结论都标了证据等级和来源。
+  </div>
+</section>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="text/plain" id="demo">
+深圳2天1夜｜这样玩真的绝了🥹
+📍Day1
+1️⃣ 深圳湾公园 🌊 骑行超舒服，日落绝美
+2️⃣ 超好拍的海上世界，人均80
+3️⃣ 蛇口老街（宵夜必去）
+Day2️⃣
+1️⃣ 世界之窗 门票220
+2️⃣ 网红欢乐谷～排队2小时
+#深圳旅游 #周末去哪儿
+</script>
+
+<script>/* ===== parse.js ===== */
+/* ============================================================
+ * 照着走 · 行程文本解析器
+ * 输入：小红书笔记文案（或任意粘贴的行程文本）
+ * 输出：按天分组的有序地点列表
+ *
+ * 设计前提：解析器只负责「拿到 80%」，剩下 20% 由 UI 让用户增删改排序。
+ * 宁可多召回（标低 conf 让用户删），也不要漏掉真地点。
+ * 纯函数、无依赖，node 与浏览器共用。
+ * ============================================================ */
+(function (root, factory) {
+  var api = factory();
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  else root.ZZParse = api;
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  var SEP = '\u0001';   // 链接符哨兵：必须在剥 emoji 前占位，否则箭头会被当表情吃掉
+  var RE_CJK = /[\u4e00-\u9fa5]/;
+
+  /* 表情 / 变体选择符 / 零宽。注意：箭头（U+2190-21FF、U+27A1、U+2B00 段）
+     与这些区间重叠，故 preprocess 先把链接符换成哨兵再走这里。 */
+  var RE_EMOJI = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE00}-\u{FE0F}\u{200B}-\u{200D}\u{20E3}\u{2190}-\u{21FF}\u{2900}-\u{297F}\u{3030}\u{303D}\u{3297}\u{3299}\u{00A9}\u{00AE}]/gu;
+
+  function squeeze(s) { return s.replace(/[\s\u3000]+/g, ' ').trim(); }
+  function clean(s) { return squeeze(String(s == null ? '' : s).replace(RE_EMOJI, '')); }
+
+  var CIRCLED = '\u2460\u2461\u2462\u2463\u2464\u2465\u2466\u2467\u2468\u2469\u246A\u246B\u246C\u246D\u246E\u246F\u2470\u2471\u2472\u2473';
+  /* 归一化：全角数字→半角、圈号/keycap→「N.」、链接符→哨兵，最后剥表情。顺序不可调换。 */
+  function preprocess(s) {
+    return squeeze(String(s == null ? '' : s)
+      .replace(/[\uFF10-\uFF19]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); })
+      .replace(/[\u2460-\u2473]/g, function (c) { return String(CIRCLED.indexOf(c) + 1) + '.'; })
+      .replace(/(\d)\uFE0F?\u20E3/g, '$1.')
+      .replace(/\s*(?:\u2192|\u27A1|\u21D2|\u27F6|=>|->|\u2014{1,3}|\u2013{1,2}|\u300B|>{1,2}|\uFF1E|\u3001)\s*/g, SEP)
+      .replace(RE_EMOJI, ''));
+  }
+
+  var CN_NUM = { '\u96f6': 0, '\u4e00': 1, '\u4e8c': 2, '\u4e24': 2, '\u4e09': 3, '\u56db': 4, '\u4e94': 5, '\u516d': 6, '\u4e03': 7, '\u516b': 8, '\u4e5d': 9, '\u5341': 10 };
+  function cnToInt(s) {
+    if (/^\d+$/.test(s)) return parseInt(s, 10);
+    if (s.length === 1) return CN_NUM[s];
+    var m = /^(.)?\u5341(.)?$/.exec(s);           // 十一 / 二十 / 二十三
+    if (!m) return null;
+    var tens = m[1] ? CN_NUM[m[1]] : 1, ones = m[2] ? CN_NUM[m[2]] : 0;
+    return (tens == null || ones == null) ? null : tens * 10 + ones;
+  }
+
+  /* ---------- 行分类 ---------- */
+
+  var RE_DAY = [
+    /^(?:day|d)\s*[-#]?\s*(\d{1,2})(?:\s*[-~\u81f3\u5230]\s*\d{1,2})?/i,
+    /^\u7b2c\s*([\u96f6\u4e00\u4e8c\u4e24\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5341\d]{1,3})\s*\u5929/,
+    /^(\d{1,2})\s*\u5929\s*[:\uff1a]/,
+  ];
+
+  function matchDay(line) {
+    var whole = preprocess(line).replace(/^[#*\-\u00b7\u2022\s]+/, '');
+    var head = whole.split(SEP)[0];
+    for (var i = 0; i < RE_DAY.length; i++) {
+      var m = RE_DAY[i].exec(head);
+      if (!m) continue;
+      var n = cnToInt(m[1]);
+      if (n == null || n < 1 || n > 60) continue;
+      var rest = whole.slice(m[0].length).replace(new RegExp('^[\\s:\\uff1a,\\uff0c.\\u3002' + SEP + ']+'), '');
+      return { day: n, label: 'Day' + n, rest: rest };
+    }
+    return null;
+  }
+
+  /* 整行级噪声：标题、话术、说明段落。命中即整行丢弃。 */
+  var LINE_NOISE = [
+    /^(?:tips?|note|ps|p\.s\.?)\b/i,
+    /^(?:\u6ce8\u610f|\u63d0\u9192|\u5efa\u8bae|\u53cb\u60c5\u63d0\u793a|\u6e29\u99a8\u63d0\u793a|\u907f\u96f7|\u8e29\u96f7|\u5212\u91cd\u70b9)\s*[:\uff1a]?/,
+    /^(?:\u4f4f\u5bbf|\u4ea4\u901a|\u7f8e\u98df|\u82b1\u8d39|\u82b1\u9500|\u8d39\u7528|\u9884\u7b97|\u95e8\u7968|\u7968\u4ef7|\u884c\u524d|\u51c6\u5907|\u7a7f\u642d|\u62cd\u7167|\u673a\u4f4d|\u4eba\u5747)\s*[:\uff1a]/,
+    /(?:\u653b\u7565|\u4fdd\u59c6\u7ea7|\u7801\u4f4f|\u6536\u85cf|\u5173\u6ce8\u6211|\u70b9\u8d5e|\u8bc4\u8bba\u533a|\u59d0\u59b9\u4eec|\u5b9d\u5b50\u4eec|\u96c6\u7f8e\u4eec|\u5bb6\u4eba\u4eec|\u5165\u80a1\u4e0d\u4e8f|\u7edd\u7edd\u5b50|\u8c01\u61c2\u554a|\u771f\u7684\u4f1a\u8c22|\u4e0d\u770b\u540e\u6094)/,
+    /(?:\u8def\u7ebf|\u653b\u7565|\u6e38\u8bb0|\u6e05\u5355|\u5b89\u6392|\u5408\u96c6|\u6307\u5357|\u7b14\u8bb0)\s*$/,
+    /\d\s*\u5929\s*\d\s*\u591c/,
+    /^#/,
+    /^[^\u4e00-\u9fa5a-zA-Z]*$/,
+  ];
+  function isLineNoise(t) {
+    for (var i = 0; i < LINE_NOISE.length; i++) if (LINE_NOISE[i].test(t)) return true;
+    return false;
+  }
+
+  /* 名字级拒收：清洗后剩下的东西根本不是地点 */
+  var NAME_REJECT = [
+    /^(?:\u4eba\u5747|\u95e8\u7968|\u82b1\u8d39|\u9884\u7b97|\u8d39\u7528|\u8f66\u7a0b|\u5730\u5740|\u7535\u8bdd|\u8425\u4e1a|\u5f00\u653e|\u5efa\u8bae|\u6ce8\u610f|\u63d0\u793a|\u4ea4\u901a|\u4f4f\u5bbf|\u7f8e\u98df|\u65f6\u95f4|\u5168\u7a0b|\u5927\u7ea6|\u5927\u6982)/,
+    /^\d+(?:\.\d+)?(?:\u5143|\u5757|km|\u516c\u91cc|\u7c73|\u5206\u949f|\u5c0f\u65f6|\u4eba)?$/i,
+    /^(?:\u5de6\u53f3|\u8d77\u6b65|\u51fa\u53d1|\u7ed3\u675f|\u8fd4\u7a0b|\u56de\u7a0b|\u81ea\u7531\u6d3b\u52a8|\u968f\u610f|\u5f85\u5b9a)$/,
+  ];
+  function isNameReject(n) {
+    if (!n || n.length < 2) return true;
+    if (!RE_CJK.test(n) && !/[a-zA-Z]{3}/.test(n)) return true;
+    for (var i = 0; i < NAME_REJECT.length; i++) if (NAME_REJECT[i].test(n)) return true;
+    return false;
+  }
+
+  /* ---------- 地点名清洗 ---------- */
+
+  var T = '(?:\\d{1,2}\\s*[:\\uff1a]\\s*\\d{2}|\\d{1,2}\\s*\\u70b9(?:\\u534a|\\s*\\d{1,2}\\s*\\u5206)?)';
+  var PERIOD = '(?:\\u4e0a\\u5348|\\u4e0b\\u5348|\\u4e2d\\u5348|\\u65e9\\u4e0a|\\u65e9\\u6668|\\u6e05\\u6668|\\u508d\\u665a|\\u665a\\u4e0a|\\u591c\\u91cc|\\u5348\\u540e)';
+  var RE_LEAD_TIME = new RegExp('^(?:' + PERIOD + '\\s*)?' + T + '(?:\\s*[-~\\u2014\\u2013\\u81f3\\u5230]\\s*' + T + ')?[\\s,\\uff0c:\\uff1a.\\u3002]*');
+  var RE_LEAD_PERIOD = new RegExp('^' + PERIOD + '\\s*[:\\uff1a,\\uff0c]?\\s*');
+  /* 序号 / 项目符号。冒号不入此集，否则会把「09:00」啃成「00」 */
+  var RE_LEAD_BULLET = /^(?:\d{1,2}\s*[.\u3001)\uff09]|[-\u2013\u00b7\u2022*\u25aa\u2023\u25cf\u25cb\u25e6\u25b6\u25ba\u25b8]|>+)\s*/;
+
+  var RE_ADV = /^(?:\u5148|\u518d|\u7136\u540e|\u63a5\u7740|\u4e4b\u540e|\u6700\u540e|\u987a\u4fbf|\u63a5\u4e0b\u6765|\u7d27\u63a5\u7740)\s*/;
+  /* 多字动词：无条件剥。单字动词：必须带 了/过/的/一下，否则「游乐园」「玩具城」会被啃掉 */
+  var RE_VERB_MULTI = /^(?:\u524d\u5f80|\u62b5\u8fbe|\u51fa\u53d1\u53bb|\u76f4\u5954|\u6253\u5361|\u6e38\u89c8|\u53c2\u89c2|\u8def\u8fc7|\u9014\u7ecf|\u8fd4\u56de|\u5165\u4f4f|\u901b\u901b|\u54c1\u5c1d)\s*(?:\u4e86|\u8fc7|\u7684|\u4e00\u4e0b)?\s*/;
+  var RE_VERB_SOLO = /^(?:\u53bb|\u5230|\u901b|\u6e38|\u73a9|\u5403|\u56de|\u4f4f|\u770b)\s*(?:\u4e86|\u8fc7|\u7684|\u4e00\u4e0b)\s*/;
+
+  var HYPE_ADV = '(?:\\u8d85|\\u5de8|\\u8d3c|\\u7279|\\u7279\\u522b|\\u975e\\u5e38|\\u6781|\\u597d|\\u5f88|\\u771f\\u7684\\u5f88|\\u7edd|\\u65e0\\u654c)?';
+  var HYPE_ADJ = '(?:\\u597d\\u62cd|\\u597d\\u770b|\\u597d\\u5403|\\u597d\\u73a9|\\u51fa\\u7247|\\u7edd\\u7f8e|\\u7edd\\u4e86|\\u7f8e|\\u9999|\\u6cbb\\u6108|\\u677e\\u5f1b|\\u5b89\\u9759|\\u5c0f\\u4f17|\\u51b7\\u95e8|\\u4eba\\u5c11|\\u5fc5\\u53bb|\\u5fc5\\u6253\\u5361|\\u5fc5\\u5403|\\u4e0d\\u8e29\\u96f7|\\u5b9d\\u85cf|\\u9690\\u85cf|\\u795e\\u4ed9|\\u9876\\u7ea7|\\u5929\\u82b1\\u677f|\\u7f51\\u7ea2|\\u65b0\\u664b|\\u8d85\\u706b|\\u7206\\u706b|\\u4eba\\u6c14|\\u738b\\u70b8)';
+  var RE_HYPE = new RegExp('^(?:' + HYPE_ADV + '\\s*' + HYPE_ADJ + '\\s*(?:\\u7684|\\u6b3e|\\u7ea7)?\\s*)+');
+
+  var RE_TAIL_HYPE = /(?:\u771f\u7684|\u771f|\u8d85|\u5de8|\u8d3c|\u7b80\u76f4)?\s*(?:\u7edd\u4e86|\u7edd\u7edd\u5b50|\u7edd|\u7f8e\u7ffb|\u597d\u770b|\u597d\u73a9|\u597d\u5403|\u8d85\u9999|\u6cbb\u6108|\u51fa\u7247|\u65e0\u654c|yyds)$/i;
+  var RE_TAIL_ACT = /(?:\u6253\u5361|\u901b\u8857|\u62cd\u7167|\u62cd\u7247|\u51fa\u7247|\u6563\u6b65|\u9061\u5f2f|\u770b\u65e5\u843d|\u770b\u65e5\u51fa|\u770b\u591c\u666f|\u770b\u661f\u661f|\u559d[\u4e00-\u9fa5]{1,3}\u8336|\u559d\u5496\u5561|\u5403\u996d|\u5403\u65e9\u8336)$/;
+  var RE_TAIL_GENERIC = /(?:\u4e00\u65e5\u6e38|\u534a\u65e5\u6e38|\u4e24\u65e5\u6e38|\u4e09\u65e5\u6e38|\u4e4b\u65c5|\u6e38\u73a9|\u884c\u7a0b|\u8def\u7ebf)$/;
+
+  var RE_TAIL_SPLIT = /[,\uff0c\u3002;\uff1b!\uff01?\uff1f~\uff5e|\uff5c]/;
+  var RE_PAREN = /[\uff08(\u3010\[]([^\uff09)\u3011\]]{0,40})[\uff09)\u3011\]]/g;
+
+  /** 一段文本 → { name, note, hyped }。输入应已 preprocess 过且不含哨兵。 */
+  function cleanName(seg) {
+    var t = clean(seg), notes = [], i, before;
+
+    t = squeeze(t.replace(RE_PAREN, function (_, inner) {
+      var v = clean(inner); if (v) notes.push(v); return ' ';
+    }));
+
+    // 行首噪声分层剥离：时刻可能出现在序号之后，循环到不动点
+    for (i = 0; i < 5; i++) {
+      before = t;
+      t = squeeze(t.replace(RE_LEAD_BULLET, '').replace(RE_LEAD_TIME, '')
+                   .replace(RE_LEAD_PERIOD, '').replace(RE_ADV, ''));
+      if (t === before) break;
+    }
+    for (i = 0; i < 3; i++) {
+      before = t;
+      t = squeeze(t.replace(RE_VERB_MULTI, '').replace(RE_VERB_SOLO, ''));
+      if (t === before) break;
+    }
+
+    var parts = t.split(RE_TAIL_SPLIT).map(clean).filter(Boolean);
+    if (parts.length) { t = parts[0]; notes = notes.concat(parts.slice(1)); }
+
+    // 中文地名不含空格：首个空格之后是说明（「深圳湾公园 骑行超舒服」）
+    var sp = t.indexOf(' ');
+    if (sp > 0 && RE_CJK.test(t.slice(0, sp))) { notes.push(clean(t.slice(sp + 1))); t = t.slice(0, sp); }
+
+    var hyped = false;
+    var afterHype = squeeze(t.replace(RE_HYPE, ''));
+    if (afterHype !== t && afterHype.length >= 2) { hyped = true; t = afterHype; }
+    t = squeeze(t.replace(RE_VERB_MULTI, '').replace(RE_VERB_SOLO, ''));
+
+    // 尾部：吹捧 → 动作 → 泛化词；各自只在剩余 >=2 字时才剥
+    [RE_TAIL_HYPE, RE_TAIL_ACT, RE_TAIL_GENERIC, RE_TAIL_GENERIC].forEach(function (re) {
+      var v = squeeze(t.replace(re, ''));
+      if (v !== t && v.length >= 2) t = v;
+    });
+
+    t = squeeze(t.replace(/^[\s\-\u2013\u00b7\u2022,\uff0c:\uff1a]+/, '')
+                 .replace(/[\s\-\u2013\u00b7\u2022,\uff0c:\uff1a]+$/, ''));
+    return { name: t, note: notes.filter(Boolean).join(' \u00b7 '), hyped: hyped };
+  }
+
+  /* ---------- 置信度 ---------- */
+
+  var RE_POI_TAIL = /(?:\u516c\u56ed|\u5e7f\u573a|\u535a\u7269\u9986|\u7f8e\u672f\u9986|\u5c55\u89c8\u9986|\u7eaa\u5ff5\u9986|\u5bfa|\u5e99|\u89c2|\u5854|\u697c|\u9601|\u5bab|\u56ed|\u6e56|\u5c71|\u5cf0|\u5c9b|\u6ee9|\u6d77\u6ee9|\u6e7e|\u53e4\u57ce|\u53e4\u9547|\u8001\u8857|\u5927\u9053|\u7801\u5934|\u8f66\u7ad9|\u673a\u573a|\u5927\u6865|\u4e66\u5e97|\u5496\u5561|\u5496\u5561\u9986|\u9910\u5385|\u996d\u5e97|\u9152\u697c|\u98df\u5802|\u5e02\u573a|\u591c\u5e02|\u5546\u573a|\u4e2d\u5fc3|\u5927\u53a6|\u57fa\u5730|\u666f\u533a|\u98ce\u666f\u533a|\u6b65\u884c\u8857|\u8425\u5730|\u6e29\u6cc9|\u7011\u5e03|\u5ce1\u8c37|\u8349\u539f|\u6559\u5802|\u5927\u5b66|\u5b66\u9662|\u6751|\u9547|\u8def|\u8857|\u5df7|\u91cc|\u82d1|\u9986|\u57ce)$/;
+
+  function score(name, ctx) {
+    if (!name) return 0;
+    var s = 0.5, len = name.length;
+    if (len >= 2 && len <= 12) s += 0.15;
+    if (len > 15) s -= 0.3;
+    if (RE_POI_TAIL.test(name)) s += 0.25;
+    if (!RE_CJK.test(name)) s -= 0.15;
+    // 结构性信号（列点/时刻/箭头）合并计一次，避免叠加到满分
+    var struct = 0;
+    if (ctx.numbered) struct = Math.max(struct, 0.2);
+    if (ctx.timed) struct = Math.max(struct, 0.2);
+    if (ctx.chained) struct = Math.max(struct, 0.15);
+    s += struct;
+    if (ctx.hyped) s += 0.05;
+    return Math.max(0, Math.min(1, s));
+  }
+
+  /* ---------- 主流程 ---------- */
+
+  function parse(text) {
+    var lines = String(text == null ? '' : text).split(/\r?\n/);
+    var days = [], cur = null, cityLines = [];
+
+    function ensureDay() {
+      if (!cur) { cur = { label: '\u884c\u7a0b', stops: [] }; days.push(cur); }
+      return cur;
+    }
+
+    function handle(t, raw) {
+      if (!t) return;
+      var numbered = RE_LEAD_BULLET.test(t);
+      var timed = RE_LEAD_TIME.test(t) || RE_LEAD_PERIOD.test(t);
+      var segs = t.split(SEP).map(squeeze).filter(Boolean);
+      var chained = segs.length > 1;
+      // 串联行每段都得够短，否则多半是句子里恰好有破折号/顿号
+      if (chained && segs.some(function (x) { return x.length > 20; })) {
+        segs = [t.split(SEP).join(' ')]; chained = false;
+      }
+      for (var i = 0; i < segs.length; i++) {
+        var c = cleanName(segs[i]);
+        if (isNameReject(c.name)) continue;
+        var conf = score(c.name, { numbered: numbered, timed: timed, chained: chained, hyped: c.hyped });
+        if (conf <= 0) continue;
+        ensureDay().stops.push({
+          raw: squeeze(String(raw)), name: c.name, note: c.note,
+          conf: Math.round(conf * 100) / 100,
+        });
+      }
+    }
+
+    for (var i = 0; i < lines.length; i++) {
+      var raw = lines[i], t = preprocess(raw);
+      if (!t) continue;
+      var d = matchDay(raw);
+      if (d) {
+        cur = { label: d.label, stops: [] };
+        days.push(cur);
+        if (d.rest && !isLineNoise(d.rest.split(SEP).join(' '))) { cityLines.push(d.rest); handle(d.rest, raw); }
+        continue;
+      }
+      if (isLineNoise(t.split(SEP).join(' '))) continue;
+      handle(t, raw);
+    }
+
+    days = days.filter(function (x) { return x.stops.length; });
+    var flat = [];
+    days.forEach(function (d) {
+      d.stops.forEach(function (s) { flat.push({ day: d.label, name: s.name, note: s.note, conf: s.conf, raw: s.raw }); });
+    });
+    return { days: days, stops: flat, hints: { cityLines: cityLines } };
+  }
+
+  return { parse: parse, cleanName: cleanName, matchDay: matchDay, preprocess: preprocess };
+});
+
+;
+/* ===== links.js ===== */
+/* ============================================================
+ * 照着走 · 地图链接生成层
+ *
+ * 证据等级（见 xhs2nav/RESEARCH.md）：
+ *   [官方]   官方文档明文
+ *   [半官方] 高德/百度自家代码或官方活动页在用，但未进参数表
+ *   [实测]   仅社区实现佐证，必须真机验证
+ *
+ * 关键结构事实：
+ *  - 途经点一律需要经纬度。起点/终点可以只给名字，途经点不行。
+ *  - 高德 Web  是「经度,纬度,名称」；高德 App 是具名的 slat/slon。顺序相反，写反不报错。
+ *  - 高德 dev=0 表示「我给的已是 GCJ-02」；dev=1 表示「我给的是 WGS84，请你加偏」。
+ *  - 百度 coord_type=gcj02 可直接吃高德坐标，故全程只需一套 GCJ-02，无需 BD-09 转换。
+ *  - 「多途经点 + 直接进导航」只有百度能做（baidumap://map/navi + viaPoints）；
+ *    高德带途经点只能落到路线规划页，用户需再点一次「开始导航」。
+ * ============================================================ */
+(function (root, factory) {
+  var api = factory();
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  else root.ZZLinks = api;
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  var E = encodeURIComponent;
+  var PIPE = '%7C';                     // | 在部分 WebView/短信/二维码里会被截断，一律编码
+
+  /* 途经点上限。3 = 两家都保证的安全值（百度官方明文上限，也等于高德 App 手动添加上限）。
+     高德可放宽到 10——证据是 act.amap.com 官方活动页发出过 vian=10 的链接，但未真机实测，
+     超限行为（全生效/截断/整条失败）未知，故不做默认。 */
+  var VIA_MAX = { amap: 3, amapLoose: 10, baidu: 3 };
+
+  /* 百度 direction 的 mode 合法集经官方 SDK 源码确认为
+     {driving, transit, walking, neweng, truck} —— 没有 riding。
+     骑行在百度是独立入口 baidumap://map/bikenavi，且不支持途经点。 */
+  var MODE = {
+    car:  { amapT: '0', amapWeb: 'car',  baidu: 'driving' },
+    bus:  { amapT: '1', amapWeb: 'bus',  baidu: 'transit' },
+    walk: { amapT: '2', amapWeb: 'walk', baidu: 'walking' },
+    ride: { amapT: '3', amapWeb: 'ride', baidu: null },
+  };
+
+  /* GCJ-02 → BD-09。百度官方 SDK 是在客户端先把途经点转成 BD-09 再拼 JSON，
+     且 navi/direction 构造器根本不拼 coord_type——「外层 coord_type 会作用到
+     viaPoints 内部 lat/lng」是推测，无任何证据。故这里自行转换后按 BD-09 传。 */
+  var X_PI = Math.PI * 3000.0 / 180.0;
+  function toBd09(lon, lat) {
+    var z = Math.sqrt(lon * lon + lat * lat) + 0.00002 * Math.sin(lat * X_PI);
+    var th = Math.atan2(lat, lon) + 0.000003 * Math.cos(lon * X_PI);
+    return { lon: z * Math.cos(th) + 0.0065, lat: z * Math.sin(th) + 0.006 };
+  }
+
+  function hasCoord(p) {
+    return p && typeof p.lon === 'number' && typeof p.lat === 'number' &&
+           isFinite(p.lon) && isFinite(p.lat);
+  }
+  function allCoords(list) { return list.length > 0 && list.every(hasCoord); }
+
+  /** 把 N 个点按「每条链接最多 viaMax 个途经点」切成若干段，段间首尾相接。
+   *  10 个点、viaMax=3 → [0..4], [4..8], [8..9]（每段 起+3途+终）。 */
+  function chunkRoute(points, viaMax) {
+    var per = viaMax + 2, out = [], i = 0;
+    if (points.length <= per) return [points.slice()];
+    while (i < points.length - 1) {
+      var seg = points.slice(i, i + per);
+      if (seg.length < 2) break;
+      out.push(seg);
+      i += per - 1;                      // 首尾相接：上一段的终点是下一段的起点
+    }
+    return out;
+  }
+
+  /* ---------------- 高德 ---------------- */
+
+  /** [官方] Web/H5 路径规划页。via 官方只文档化了 1 个；多 via 的分隔符属未定义行为。 */
+  function amapWeb(seg, opt) {
+    var m = MODE[opt.mode] || MODE.car;
+    var from = seg[0], to = seg[seg.length - 1], vias = seg.slice(1, -1);
+    function pt(p) { return hasCoord(p) ? p.lon + ',' + p.lat + ',' + E(p.name) : ',,' + E(p.name); }
+    var u = 'https://uri.amap.com/navigation?from=' + pt(from) + '&to=' + pt(to);
+    if (vias.length) u += '&via=' + vias.map(pt).join(opt.viaSep === ';' ? '%3B' : PIPE);
+    u += '&mode=' + m.amapWeb + '&policy=1&coordinate=gaode&callnative=1&src=' + E(opt.src || 'zhaozhezou');
+    return u;
+  }
+
+  /** [半官方] App scheme。vian + vialons/vialats/vianames 三列表等长，| 分隔。
+   *  host=multi 用高德自家发多途经点行程的 amapuri://drive/multiViaPointPlan/。 */
+  function amapScheme(seg, opt, os, host) {
+    var m = MODE[opt.mode] || MODE.car;
+    var from = seg[0], to = seg[seg.length - 1], vias = seg.slice(1, -1);
+    var base = os === 'ios' ? 'iosamap://path?' :
+      (host === 'multi' ? 'amapuri://drive/multiViaPointPlan/?' : 'amapuri://route/plan/?');
+    var q = 'sourceApplication=' + E(opt.src || 'zhaozhezou');
+    // 起点三项全空 = 用「我的位置」
+    if (hasCoord(from)) q += '&slat=' + from.lat + '&slon=' + from.lon + '&sname=' + E(from.name);
+    else if (opt.originIsMe) q += '&slat=&slon=&sname=';
+    else q += '&slat=&slon=&sname=' + E(from.name);
+    q += '&dlat=' + (hasCoord(to) ? to.lat : '') + '&dlon=' + (hasCoord(to) ? to.lon : '') +
+         '&dname=' + E(to.name) + '&dev=0&t=' + m.amapT;
+    if (vias.length) {
+      q += '&vian=' + vias.length +
+           '&vialons=' + vias.map(function (p) { return p.lon; }).join(PIPE) +
+           '&vialats=' + vias.map(function (p) { return p.lat; }).join(PIPE) +
+           '&vianames=' + vias.map(function (p) { return E(p.name); }).join(PIPE);
+    }
+    return base + q;
+  }
+
+  /* ---------------- 百度 ---------------- */
+
+  /** viaPoints：外层对象包一层同名键，内层 name/lat/lng，整体 URL-encode。
+   *  参数名与三个内层键名均由百度官方 Android SDK 与 iOS 头文件双链印证。
+   *  坐标先转 BD-09（见 toBd09 的说明）。 */
+  function viaPointsParam(vias) {
+    return E(JSON.stringify({
+      viaPoints: vias.map(function (p) {
+        var b = toBd09(p.lon, p.lat);
+        return { name: p.name, lat: b.lat, lng: b.lon };
+      }),
+    }));
+  }
+
+  function bdLatLng(p) { var b = toBd09(p.lon, p.lat); return b.lat + ',' + b.lon; }
+
+  /** [官方+SDK逐字印证] 带途经点直接进入导航态——所有方案里唯一的真·一键导航。
+   *  参数与顺序对照官方 SDK 的 navi 构造器：origin / origin_uid / location /
+   *  destination_uid / src / viaPoints / type / mode。
+   *  终点用 location=纬度,经度；SDK 从不用 query= 指定 navi 终点。 */
+  function baiduNavi(seg, opt) {
+    var from = seg[0], to = seg[seg.length - 1], vias = seg.slice(1, -1);
+    var u = 'baidumap://map/navi?';
+    if (!opt.originIsMe && hasCoord(from)) u += 'origin=' + bdLatLng(from) + '&';
+    u += 'location=' + bdLatLng(to) +
+         '&src=' + E(opt.baiduSrc || 'andr.zhaozhezou.app');
+    if (vias.length) u += '&viaPoints=' + viaPointsParam(vias);
+    u += '&mode=driving';                 // SDK 另有 neweng（新能源）；货车走 truck/navigation
+    return u;
+  }
+
+  /** [官方SDK印证=参数集；途经点=未证实] 路线规划页。
+   *  origin/destination 支持纯地名 → 这是零 key 路径的主力。
+   *  viaPoints 挂在 direction 上【没有一手证据】：官方 SDK 的 direction 构造器
+   *  确实不拼这个参数，只有二手文档示例提到过。故仅在有坐标时附带，并标注需实测。 */
+  function baiduDirection(seg, opt) {
+    var m = MODE[opt.mode] || MODE.car;
+    var bmode = m.baidu || 'driving';
+    var from = seg[0], to = seg[seg.length - 1], vias = seg.slice(1, -1);
+    function pt(p) {
+      return hasCoord(p) ? 'name:' + E(p.name) + PIPE + 'latlng:' + bdLatLng(p) : E(p.name);
+    }
+    var u = 'baidumap://map/direction?origin=' + (opt.originIsMe ? '' : pt(from)) +
+            '&destination=' + pt(to) + '&mode=' + bmode + '&target=1' +
+            '&src=' + E(opt.baiduSrc || 'andr.zhaozhezou.app');
+    if (opt.city) u += '&region=' + E(opt.city);   // region 仅二手来源支持
+    if (vias.length && allCoords(vias)) u += '&viaPoints=' + viaPointsParam(vias);
+    return u;
+  }
+
+  /** [二手来源] 网页版路线规划。origin/destination 认纯地名 →
+   *  未装 App / 微信内的降级。官方 web 端参数表未能一手核对。 */
+  function baiduWeb(seg, opt) {
+    var m = MODE[opt.mode] || MODE.car;
+    var bmode = m.baidu || 'driving';
+    var from = seg[0], to = seg[seg.length - 1];
+    function pt(p) { return hasCoord(p) ? 'name:' + E(p.name) + PIPE + 'latlng:' + bdLatLng(p) : E(p.name); }
+    var u = 'https://api.map.baidu.com/direction?origin=' + pt(from) + '&destination=' + pt(to) +
+            '&mode=' + bmode + '&coord_type=bd09ll&output=html' +
+            '&src=' + E(opt.baiduSrc || 'webapp.zhaozhezou.app');
+    if (opt.city) u += '&region=' + E(opt.city);
+    return u;
+  }
+
+  /* ---------------- Android intent 包装 ---------------- */
+
+  /** Chrome 25+ 禁止 location.href='xxx://'，网页里唤起 App 必须用 intent 语法。 */
+  function toIntent(scheme, pkg, url, fallback) {
+    var body = url.slice(url.indexOf('://') + 3);
+    return 'intent://' + body + '#Intent;scheme=' + scheme + ';package=' + pkg +
+           (fallback ? ';S.browser_fallback_url=' + E(fallback) : '') + ';end';
+  }
+
+  /* ---------------- 对外主函数 ---------------- */
+
+  /**
+   * @param {Array}  stops  [{name, lon?, lat?}]，按经过顺序
+   * @param {Object} opt    { mode, os:'android'|'ios'|'other', city, src, baiduSrc,
+   *                          originIsMe, amapLoose, viaSep }
+   * @returns {Object} { mode:'route'|'segment', coords:boolean, plans:[...] }
+   *   plans[].legs[] = { title, from, to, vias, links:[{app,kind,url,label,note}] }
+   */
+  function build(stops, opt) {
+    opt = opt || {};
+    var pts = (stops || []).filter(function (s) { return s && s.name; });
+    if (pts.length < 2) return { mode: 'none', coords: false, plans: [], reason: '至少需要 2 个地点' };
+
+    var coords = allCoords(opt.originIsMe ? pts.slice(1) : pts);
+    var os = opt.os || 'other';
+    var plans = [];
+
+    if (coords) {
+      /* ---- 有坐标：真·多途经点 ---- */
+      var amapMax = opt.amapLoose ? VIA_MAX.amapLoose : VIA_MAX.amap;
+      plans.push({
+        app: 'amap', title: '高德地图',
+        note: '落地是路线规划页，需再点一次「开始导航」',
+        legs: chunkRoute(pts, amapMax).map(function (seg, i, arr) {
+          var webUrl = amapWeb(seg, opt);
+          var links = [];
+          if (os === 'android') {
+            links.push({ kind: 'app', label: '打开高德 App', note: '[半官方] 多途经点专用 host',
+              url: toIntent('amapuri', 'com.autonavi.minimap', amapScheme(seg, opt, 'android', 'multi'), webUrl) });
+            links.push({ kind: 'app-alt', label: '备选：路线规划 host', note: '[半官方] 上一条不灵时试这个',
+              url: toIntent('amapuri', 'com.autonavi.minimap', amapScheme(seg, opt, 'android', 'plan'), webUrl) });
+          } else if (os === 'ios') {
+            links.push({ kind: 'app', label: '打开高德 App', note: '[半官方] iosamap://path + vian',
+              url: amapScheme(seg, opt, 'ios', 'plan') });
+          }
+          links.push({ kind: 'web', label: os === 'other' ? '打开高德' : '网页版（未装 App）',
+            note: seg.length > 3 ? '[实测] 官方只文档化了 1 个途经点，多个需验证' : '[官方]',
+            url: webUrl });
+          return {
+            title: arr.length > 1 ? '第 ' + (i + 1) + '/' + arr.length + ' 段' : '',
+            from: seg[0], to: seg[seg.length - 1], vias: seg.slice(1, -1), links: links,
+          };
+        }),
+      });
+
+      if ((opt.mode || 'car') === 'car') {
+        plans.push({
+          app: 'baidu', title: '百度地图',
+          note: '带途经点直接进导航态（真·一键）。官方限 3 个途经点；2 个以上未经实测',
+          legs: chunkRoute(pts, VIA_MAX.baidu).map(function (seg, i, arr) {
+            var links = [];
+            var navi = baiduNavi(seg, opt), dir = baiduDirection(seg, opt), web = baiduWeb(seg, opt);
+            if (os === 'android') {
+              links.push({ kind: 'app', label: '直接开导航', note: '[SDK逐字印证] 仅驾车',
+                url: toIntent('bdapp', 'com.baidu.BaiduMap', navi, web) });
+              links.push({ kind: 'app-alt', label: '路线规划页', note: '[途经点未证实] SDK 未拼 viaPoints',
+                url: toIntent('bdapp', 'com.baidu.BaiduMap', dir, web) });
+            } else if (os === 'ios') {
+              links.push({ kind: 'app', label: '直接开导航', note: '[SDK逐字印证] 仅驾车', url: navi });
+              links.push({ kind: 'app-alt', label: '路线规划页', note: '[途经点未证实]', url: dir });
+            }
+            links.push({ kind: 'web', label: '网页版（无途经点）', note: '[二手来源] 网页版途经点能力未证实', url: web });
+            return {
+              title: arr.length > 1 ? '第 ' + (i + 1) + '/' + arr.length + ' 段' : '',
+              from: seg[0], to: seg[seg.length - 1], vias: seg.slice(1, -1), links: links,
+            };
+          }),
+        });
+      }
+      return { mode: 'route', coords: true, plans: plans };
+    }
+
+    /* ---- 无坐标：降级为分段导航，每段 A→B 用地名直传 ---- */
+    var legs = [];
+    for (var i = 0; i < pts.length - 1; i++) {
+      var seg2 = [pts[i], pts[i + 1]];
+      var bweb = baiduWeb(seg2, opt);
+      var links2 = [];
+      if (os === 'android') {
+        links2.push({ kind: 'app', label: '百度地图', note: '[SDK印证] origin/destination 支持纯地名',
+          url: toIntent('bdapp', 'com.baidu.BaiduMap', baiduDirection(seg2, opt), bweb) });
+        links2.push({ kind: 'app-alt', label: '高德地图', note: '[实测] 无坐标时仅凭名称发起',
+          url: toIntent('amapuri', 'com.autonavi.minimap', amapScheme(seg2, opt, 'android', 'plan'), amapWeb(seg2, opt)) });
+      } else if (os === 'ios') {
+        links2.push({ kind: 'app', label: '百度地图', note: '[SDK印证]', url: baiduDirection(seg2, opt) });
+        links2.push({ kind: 'app-alt', label: '高德地图', note: '[实测]', url: amapScheme(seg2, opt, 'ios', 'plan') });
+      }
+      links2.push({ kind: 'web', label: '网页版', note: '[官方]', url: bweb });
+      legs.push({
+        title: '第 ' + (i + 1) + '/' + (pts.length - 1) + ' 段',
+        from: pts[i], to: pts[i + 1], vias: [], links: links2,
+      });
+    }
+    return {
+      mode: 'segment', coords: false,
+      reason: '未拿到坐标，途经点无法传递，已降级为逐段导航',
+      plans: [{ app: 'mixed', title: '分段导航', note: '每到一站回来点下一段', legs: legs }],
+    };
+  }
+
+  return { build: build, chunkRoute: chunkRoute, VIA_MAX: VIA_MAX, _amapWeb: amapWeb, _amapScheme: amapScheme, _baiduNavi: baiduNavi };
+});
+
+;
+/* ===== net.js ===== */
+/* ============================================================
+ * 照着走 · 网络层
+ *
+ * 浏览器直连国内大模型/地图服务端 API 大概率被 CORS 拦截（它们是服务端 API，
+ * 通常不发 Access-Control-Allow-Origin）。因此所有外部请求都过这一层：
+ *   - 未配置代理：直连，失败时把「疑似 CORS」明确标出来，而不是报一句 Failed to fetch
+ *   - 配置了代理：把目标 URL 交给代理转发（见 proxy/worker.js）
+ * ============================================================ */
+(function (root, factory) {
+  var api = factory();
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  else root.ZZNet = api;
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  function ZZError(kind, message, detail) {
+    var e = new Error(message);
+    e.kind = kind;           // 'cors' | 'network' | 'http' | 'parse' | 'config'
+    e.detail = detail;
+    return e;
+  }
+
+  /**
+   * @param {string} url    目标绝对 URL
+   * @param {Object} opt    { method, headers, body, proxy, timeoutMs }
+   *   proxy: 形如 'https://xxx.workers.dev/'，会被拼成 proxy + '?url=' + encodeURIComponent(url)
+   */
+  async function request(url, opt) {
+    opt = opt || {};
+    var target = url, headers = Object.assign({}, opt.headers || {});
+
+    if (opt.proxy) {
+      var p = opt.proxy.replace(/\?.*$/, '').replace(/\/+$/, '');
+      target = p + '/?url=' + encodeURIComponent(url);
+    }
+
+    var ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var timer = ctl ? setTimeout(function () { ctl.abort(); }, opt.timeoutMs || 60000) : null;
+
+    var res;
+    try {
+      res = await fetch(target, {
+        method: opt.method || 'GET',
+        headers: headers,
+        body: opt.body,
+        signal: ctl ? ctl.signal : undefined,
+      });
+    } catch (err) {
+      if (timer) clearTimeout(timer);
+      if (err && err.name === 'AbortError') throw ZZError('network', '请求超时', String(err));
+      // fetch 对 CORS 失败与断网抛的都是 TypeError，浏览器不允许区分。
+      // 没配代理时，跨域是压倒性可能的原因，如实说明两种可能。
+      throw ZZError('cors',
+        opt.proxy ? '连不上代理，检查代理地址是否正确、是否已部署'
+                  : '请求失败。最可能是浏览器跨域(CORS)被拦——这类 API 通常只允许服务端调用。' +
+                    '也可能是断网或域名不可达。配置一个代理地址可绕过跨域。',
+        String(err));
+    }
+    if (timer) clearTimeout(timer);
+
+    var text = await res.text();
+    if (!res.ok) throw ZZError('http', 'HTTP ' + res.status + ' ' + res.statusText, text.slice(0, 800));
+    if (opt.raw) return text;
+    try { return JSON.parse(text); }
+    catch (e) { throw ZZError('parse', '返回不是合法 JSON', text.slice(0, 800)); }
+  }
+
+  /** 图片压缩：控制上传体积与 token 成本，同时保证中文小字仍可辨认。
+   *  Claude 高分辨率档长边上限 2576px；国内模型普遍也在 2000px 上下，取 1600 兼顾清晰与体积。 */
+  function downscale(file, maxEdge, quality) {
+    maxEdge = maxEdge || 1600;
+    quality = quality == null ? 0.85 : quality;
+    return new Promise(function (resolve, reject) {
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function () {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        var scale = Math.min(1, maxEdge / Math.max(w, h));
+        var cw = Math.max(1, Math.round(w * scale)), ch = Math.max(1, Math.round(h * scale));
+        var cv = document.createElement('canvas');
+        cv.width = cw; cv.height = ch;
+        cv.getContext('2d').drawImage(img, 0, 0, cw, ch);
+        URL.revokeObjectURL(url);
+        var dataUrl = cv.toDataURL('image/jpeg', quality);
+        resolve({
+          dataUrl: dataUrl,
+          base64: dataUrl.slice(dataUrl.indexOf(',') + 1),
+          mediaType: 'image/jpeg',
+          width: cw, height: ch,
+          bytes: Math.round(dataUrl.length * 0.75),
+        });
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); reject(ZZError('parse', '图片读取失败')); };
+      img.src = url;
+    });
+  }
+
+  return { request: request, downscale: downscale, ZZError: ZZError };
+});
+
+;
+/* ===== vision.js ===== */
+/* ============================================================
+ * 照着走 · 截图识别层（可配置多模态模型）
+ *
+ * 两种协议方言：
+ *   openai    —— 千问(百炼 compatible-mode)、豆包(火山方舟)、以及任何 OpenAI 兼容端点
+ *   anthropic —— Claude Messages API
+ *
+ * ⚠️ 下列 endpoint / 模型名来自公开检索，本机无法访问 help.aliyun.com 与
+ *    www.volcengine.com 一手核对（出口代理封禁），故全部做成 UI 可编辑。
+ *    豆包尤其注意：model 字段填的常是控制台的接入点 ID（ep-xxxxx）而非模型名。
+ * ============================================================ */
+(function (root, factory) {
+  var api = factory(
+    typeof require === 'function' ? require('./net.js') : root.ZZNet
+  );
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  else root.ZZVision = api;
+})(typeof self !== 'undefined' ? self : this, function (Net) {
+  'use strict';
+
+  var PRESETS = {
+    qwen: {
+      label: '通义千问 VL（阿里百炼）',
+      dialect: 'openai',
+      endpoint: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+      model: 'qwen-vl-max',
+      note: '控制台在 bailian.console.aliyun.com 拿 API-KEY。模型名可换 qwen-vl-plus / qwen3-vl-plus。',
+      verified: false,
+    },
+    doubao: {
+      label: '豆包 视觉（火山方舟）',
+      dialect: 'openai',
+      endpoint: 'https://ark.cn-beijing.volces.com/api/v3/chat/completions',
+      model: '',
+      note: 'model 多半要填方舟控制台的「接入点 ID」（ep- 开头），不是模型名。留空会报错，请先去控制台创建接入点。',
+      verified: false,
+    },
+    claude: {
+      label: 'Claude（Anthropic）',
+      dialect: 'anthropic',
+      endpoint: 'https://api.anthropic.com/v1/messages',
+      model: 'claude-opus-5',
+      note: '请求体格式已按官方 vision 文档核对。国内网络通常需要代理。',
+      verified: true,
+    },
+    custom: {
+      label: '自定义（OpenAI 兼容）',
+      dialect: 'openai',
+      endpoint: '',
+      model: '',
+      note: '任何 OpenAI 兼容的多模态端点都可以填这里。',
+      verified: false,
+    },
+  };
+
+  var SYSTEM = [
+    '你是行程信息抽取器。用户给你的是小红书旅游笔记的截图。',
+    '你的唯一任务：把图里出现的【实际要去的地点】按行程顺序抽出来。',
+    '',
+    '规则：',
+    '1. 只要地点，不要交通方式、门票价格、人均消费、营业时间、攻略话术、话题标签。',
+    '2. 去掉修饰语，保留可被地图搜到的规范名称。',
+    '   「超好拍的深圳湾公园」→「深圳湾公园」；「网红喜茶(万象城店)」→「喜茶 万象城店」。',
+    '3. 保持原文顺序。如果图里分了 Day1/Day2 或第一天/第二天，按天分组；没分天就放一组。',
+    '4. 能判断出城市就填 city（用于地图消歧），判断不出留空字符串。',
+    '5. 拿不准是不是地点的，仍然收进来，但把 confidence 标低。宁可多给，用户会删。',
+    '6. 不要编造图里没有的地点。不要输出经纬度——你猜的坐标一定是错的。',
+    '',
+    '只输出 JSON，不要任何解释文字、不要 markdown 代码围栏：',
+    '{"city":"深圳","days":[{"label":"Day1","stops":[{"name":"深圳湾公园","note":"看日落","confidence":0.9}]}]}',
+  ].join('\n');
+
+  var USER_TEXT = '请抽取这些截图里的行程地点，按上述规则输出 JSON。';
+
+  /** 从模型返回里挖出 JSON：容忍 ```json 围栏、前后废话。 */
+  function looseJson(text) {
+    if (!text) throw Net.ZZError('parse', '模型没有返回内容');
+    var t = String(text).trim();
+    var fence = /```(?:json)?\s*([\s\S]*?)```/i.exec(t);
+    if (fence) t = fence[1].trim();
+    try { return JSON.parse(t); } catch (e) { /* 继续 */ }
+    var s = t.indexOf('{'), e2 = t.lastIndexOf('}');
+    if (s >= 0 && e2 > s) {
+      try { return JSON.parse(t.slice(s, e2 + 1)); } catch (e) { /* 继续 */ }
+    }
+    throw Net.ZZError('parse', '模型返回的不是 JSON', t.slice(0, 600));
+  }
+
+  function buildOpenAI(images, cfg) {
+    var content = images.map(function (im) {
+      return { type: 'image_url', image_url: { url: 'data:' + im.mediaType + ';base64,' + im.base64 } };
+    });
+    content.push({ type: 'text', text: USER_TEXT });
+    return {
+      url: cfg.endpoint,
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfg.apiKey },
+      body: JSON.stringify({
+        model: cfg.model,
+        messages: [
+          { role: 'system', content: SYSTEM },
+          { role: 'user', content: content },
+        ],
+        max_tokens: 4096,
+        temperature: 0,
+      }),
+      pick: function (j) {
+        var c = j && j.choices && j.choices[0];
+        var m = c && c.message;
+        if (!m) throw Net.ZZError('parse', '返回结构不符合 OpenAI 兼容格式', JSON.stringify(j).slice(0, 600));
+        // 部分实现把内容拆成数组块
+        if (typeof m.content === 'string') return m.content;
+        if (Array.isArray(m.content)) {
+          return m.content.map(function (b) { return b && (b.text || b.content) || ''; }).join('');
+        }
+        throw Net.ZZError('parse', '无法从返回中取出文本', JSON.stringify(m).slice(0, 600));
+      },
+    };
+  }
+
+  /* Claude Messages API：图片块在文字块之前（官方 vision 文档建议 image-then-text）。 */
+  function buildAnthropic(images, cfg) {
+    var content = images.map(function (im) {
+      return { type: 'image', source: { type: 'base64', media_type: im.mediaType, data: im.base64 } };
+    });
+    content.push({ type: 'text', text: USER_TEXT });
+    return {
+      url: cfg.endpoint,
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': cfg.apiKey,
+        'anthropic-version': '2023-06-01',
+        // 浏览器直连必需，否则 SDK/网关会拒绝来自页面的请求
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: cfg.model,
+        max_tokens: 4096,
+        system: SYSTEM,
+        messages: [{ role: 'user', content: content }],
+      }),
+      pick: function (j) {
+        if (j && j.stop_reason === 'refusal') throw Net.ZZError('parse', '模型拒绝了这次请求');
+        var blocks = (j && j.content) || [];
+        var txt = blocks.filter(function (b) { return b.type === 'text'; })
+                        .map(function (b) { return b.text; }).join('');
+        if (!txt) throw Net.ZZError('parse', '返回里没有文本块', JSON.stringify(j).slice(0, 600));
+        return txt;
+      },
+    };
+  }
+
+  /**
+   * @param {Array}  images  [{base64, mediaType}]，来自 ZZNet.downscale
+   * @param {Object} cfg     { dialect, endpoint, model, apiKey, proxy }
+   * @returns {Promise<{city:string, days:[{label,stops:[{name,note,conf}]}]}>}
+   */
+  async function extract(images, cfg) {
+    if (!images || !images.length) throw Net.ZZError('config', '没有选择图片');
+    if (!cfg.endpoint) throw Net.ZZError('config', '没有填 endpoint');
+    if (!cfg.apiKey) throw Net.ZZError('config', '没有填 API Key');
+    if (!cfg.model) throw Net.ZZError('config', '没有填模型名/接入点 ID');
+
+    var req = cfg.dialect === 'anthropic' ? buildAnthropic(images, cfg) : buildOpenAI(images, cfg);
+    var json = await Net.request(req.url, {
+      method: 'POST', headers: req.headers, body: req.body,
+      proxy: cfg.proxy, timeoutMs: 120000,
+    });
+    var parsed = looseJson(req.pick(json));
+
+    var days = (parsed.days || []).map(function (d, i) {
+      return {
+        label: String(d.label || ('Day' + (i + 1))),
+        stops: (d.stops || []).map(function (s) {
+          return {
+            name: String(s.name || '').trim(),
+            note: String(s.note || '').trim(),
+            conf: typeof s.confidence === 'number' ? Math.max(0, Math.min(1, s.confidence)) : 0.8,
+          };
+        }).filter(function (s) { return s.name; }),
+      };
+    }).filter(function (d) { return d.stops.length; });
+
+    return { city: String(parsed.city || '').trim(), days: days };
+  }
+
+  return { extract: extract, PRESETS: PRESETS, _looseJson: looseJson, SYSTEM: SYSTEM };
+});
+
+;
+/* ===== geocode.js ===== */
+/* ============================================================
+ * 照着走 · 地理编码层（地点名 → 坐标）
+ *
+ * 只有拿到坐标才能传途经点。默认百度（用户指定优先），可切高德。
+ * 两家 Web 服务 API 都是服务端接口，浏览器直连大概率撞 CORS → 走 ZZNet 的代理开关。
+ *
+ * 坐标系策略：全链路统一成 GCJ-02。
+ *   - 百度 place/v2/search 默认返回 BD-09；请求 ret_coordtype=gcj02ll 可直接要 GCJ-02。
+ *     该参数若不被接受，回退到 BD-09 并本地转换（公式见 bd09ToGcj02）。
+ *   - 高德本来就是 GCJ-02。
+ * 统一 GCJ-02 后：高德链接用 dev=0，百度链接用 coord_type=gcj02，两边都不用再换算。
+ * ============================================================ */
+(function (root, factory) {
+  var api = factory(typeof require === 'function' ? require('./net.js') : root.ZZNet);
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  else root.ZZGeo = api;
+})(typeof self !== 'undefined' ? self : this, function (Net) {
+  'use strict';
+
+  var X_PI = Math.PI * 3000.0 / 180.0;
+
+  /** BD-09 → GCJ-02。仅在百度不接受 ret_coordtype 时作为回退使用。 */
+  function bd09ToGcj02(lon, lat) {
+    var x = lon - 0.0065, y = lat - 0.006;
+    var z = Math.sqrt(x * x + y * y) - 0.00002 * Math.sin(y * X_PI);
+    var th = Math.atan2(y, x) - 0.000003 * Math.cos(x * X_PI);
+    return { lon: z * Math.cos(th), lat: z * Math.sin(th) };
+  }
+  /** GCJ-02 → BD-09。备用。 */
+  function gcj02ToBd09(lon, lat) {
+    var z = Math.sqrt(lon * lon + lat * lat) + 0.00002 * Math.sin(lat * X_PI);
+    var th = Math.atan2(lat, lon) + 0.000003 * Math.cos(lon * X_PI);
+    return { lon: z * Math.cos(th) + 0.0065, lat: z * Math.sin(th) + 0.006 };
+  }
+
+  /** 粗略球面距离（米），只用于候选排序，精度足够。 */
+  function distM(a, b) {
+    var R = 6371000, toRad = Math.PI / 180;
+    var dLat = (b.lat - a.lat) * toRad, dLon = (b.lon - a.lon) * toRad;
+    var la1 = a.lat * toRad, la2 = b.lat * toRad;
+    var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(la1) * Math.cos(la2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return 2 * R * Math.asin(Math.sqrt(h));
+  }
+
+  /* ---------------- 百度 ---------------- */
+
+  async function baiduSearch(name, cfg, city) {
+    var base = 'https://api.map.baidu.com/place/v2/search?output=json&page_size=10' +
+      '&query=' + encodeURIComponent(name) +
+      '&region=' + encodeURIComponent(city || '全国') +
+      (city ? '&city_limit=true' : '') +
+      '&ak=' + encodeURIComponent(cfg.ak);
+
+    var j, gcj = true;
+    try {
+      j = await Net.request(base + '&ret_coordtype=gcj02ll', { proxy: cfg.proxy, timeoutMs: 20000 });
+      if (j && j.status !== 0) throw Net.ZZError('http', '百度返回 status=' + j.status + ' ' + (j.message || ''));
+    } catch (e) {
+      if (e.kind === 'cors' || e.kind === 'network') throw e;
+      // ret_coordtype 不被接受 → 退回默认 BD-09，本地转换
+      j = await Net.request(base, { proxy: cfg.proxy, timeoutMs: 20000 });
+      gcj = false;
+      if (j && j.status !== 0) {
+        throw Net.ZZError('http', '百度返回 status=' + j.status + ' ' + (j.message || '') +
+          '（status=240 通常是 AK 没开「地点检索」权限，302/210 是配额或校验失败）');
+      }
+    }
+
+    return (j.results || []).filter(function (r) { return r.location; }).map(function (r) {
+      var lon = r.location.lng, lat = r.location.lat;
+      if (!gcj) { var c = bd09ToGcj02(lon, lat); lon = c.lon; lat = c.lat; }
+      return {
+        name: r.name, address: r.address || '', city: r.city || '',
+        lon: lon, lat: lat, source: 'baidu', uid: r.uid || '',
+      };
+    });
+  }
+
+  /* ---------------- 高德 ---------------- */
+
+  async function amapSearch(name, cfg, city) {
+    var url = 'https://restapi.amap.com/v3/place/text?output=json&offset=10' +
+      '&keywords=' + encodeURIComponent(name) +
+      (city ? '&city=' + encodeURIComponent(city) + '&citylimit=true' : '') +
+      '&key=' + encodeURIComponent(cfg.ak);
+    var j = await Net.request(url, { proxy: cfg.proxy, timeoutMs: 20000 });
+    if (j && j.status !== '1') {
+      throw Net.ZZError('http', '高德返回 ' + (j.info || '') + ' (infocode=' + (j.infocode || '') + ')');
+    }
+    return (j.pois || []).filter(function (p) { return p.location; }).map(function (p) {
+      var xy = String(p.location).split(',');
+      return {
+        name: p.name, address: p.address || '', city: p.cityname || '',
+        lon: parseFloat(xy[0]), lat: parseFloat(xy[1]), source: 'amap', uid: p.id || '',
+      };
+    });
+  }
+
+  /** 候选排序：优先离上一站近的（同城同片区），其次保持 API 原始权重。 */
+  function pickBest(cands, prev) {
+    if (!cands.length) return null;
+    if (!prev) return cands[0];
+    var scored = cands.map(function (c, i) {
+      return { c: c, d: distM(prev, c), i: i };
+    });
+    // 200km 以内按距离选；全部很远说明上一站参考价值不大，退回原始第一条
+    var near = scored.filter(function (s) { return s.d < 200000; });
+    if (!near.length) return cands[0];
+    near.sort(function (a, b) { return a.d - b.d || a.i - b.i; });
+    return near[0].c;
+  }
+
+  /**
+   * 逐个解析地点。串行执行——并发会更快，但个人 key 的 QPS 很低，串行更稳。
+   * @param {Array}  stops [{name}]
+   * @param {Object} cfg   { provider:'baidu'|'amap', ak, proxy, city }
+   * @param {Function} onProgress (index, total, result)
+   * @returns {Promise<Array>} [{name, resolved:bool, lon, lat, matched, candidates, error}]
+   */
+  async function resolveAll(stops, cfg, onProgress) {
+    var search = cfg.provider === 'amap' ? amapSearch : baiduSearch;
+    var out = [], prev = null;
+    for (var i = 0; i < stops.length; i++) {
+      var s = stops[i], rec = { name: s.name, note: s.note || '', resolved: false };
+      try {
+        var cands = await search(s.name, cfg, cfg.city);
+        if (!cands.length && cfg.city) cands = await search(s.name, cfg, '');   // 放宽城市再试一次
+        var best = pickBest(cands, prev);
+        if (best) {
+          rec.resolved = true;
+          rec.lon = best.lon; rec.lat = best.lat;
+          rec.matched = best.name; rec.address = best.address; rec.city = best.city;
+          rec.candidates = cands.slice(0, 5);
+          prev = best;
+        } else {
+          rec.error = '搜不到这个地点';
+        }
+      } catch (e) {
+        rec.error = e.message;
+        rec.errorKind = e.kind;
+        if (e.kind === 'cors' || e.kind === 'network') {
+          // 网络层面挂了，后面每个都会同样失败，直接停
+          out.push(rec);
+          for (var k = i + 1; k < stops.length; k++) {
+            out.push({ name: stops[k].name, note: stops[k].note || '', resolved: false, error: '已跳过（网络不可用）' });
+          }
+          if (onProgress) onProgress(stops.length, stops.length, rec);
+          return out;
+        }
+      }
+      out.push(rec);
+      if (onProgress) onProgress(i + 1, stops.length, rec);
+    }
+    return out;
+  }
+
+  return {
+    resolveAll: resolveAll, pickBest: pickBest, distM: distM,
+    bd09ToGcj02: bd09ToGcj02, gcj02ToBd09: gcj02ToBd09,
+  };
+});
+
+;
+/* ===== app.js ===== */
+/* ============================================================
+ * 照着走 · 主程序
+ * 截图/文案 → 地点列表（可编辑）→ 可选地理编码 → 地图多段导航链接
+ * ============================================================ */
+(function () {
+  'use strict';
+
+  var LSK = 'zhaozhezou_v1';
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var esc = function (s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  };
+
+  /* ---------- 环境 ---------- */
+  var UA = navigator.userAgent || '';
+  var ENV = {
+    ios: /iPad|iPhone|iPod/.test(UA) || (/Macintosh/.test(UA) && navigator.maxTouchPoints > 1),
+    android: /Android/i.test(UA),
+    wechat: /MicroMessenger/i.test(UA),
+  };
+  ENV.os = ENV.ios ? 'ios' : (ENV.android ? 'android' : 'other');
+
+  /* ---------- 状态 ---------- */
+  var S = {
+    tab: 'text',
+    days: [],
+    city: '',
+    mode: 'car',
+    originIsMe: false,
+    amapLoose: false,
+    images: [],
+    busy: '',
+    cfg: {
+      visionPreset: 'qwen', endpoint: '', model: '', apiKey: '',
+      geoProvider: 'baidu', geoAk: '', proxy: '',
+    },
+  };
+  var uid = 0;
+
+  function save() {
+    try {
+      localStorage.setItem(LSK, JSON.stringify({
+        cfg: S.cfg, city: S.city, mode: S.mode,
+        originIsMe: S.originIsMe, amapLoose: S.amapLoose, days: S.days,
+      }));
+    } catch (e) { /* 隐私模式下 localStorage 可能抛异常，忽略 */ }
+  }
+  function load() {
+    try {
+      var v = JSON.parse(localStorage.getItem(LSK) || '{}');
+      if (v.cfg) Object.assign(S.cfg, v.cfg);
+      ['city', 'mode', 'originIsMe', 'amapLoose'].forEach(function (k) {
+        if (v[k] !== undefined) S[k] = v[k];
+      });
+      if (Array.isArray(v.days)) S.days = v.days;
+      S.days.forEach(function (d) { d.stops.forEach(function (s) { s.id = ++uid; }); });
+    } catch (e) { /* 存档损坏时忽略，从空状态开始 */ }
+    if (!S.cfg.endpoint) applyPreset(S.cfg.visionPreset, true);
+  }
+  function applyPreset(id, keepKey) {
+    var p = ZZVision.PRESETS[id];
+    if (!p) return;
+    S.cfg.visionPreset = id;
+    S.cfg.endpoint = p.endpoint;
+    S.cfg.model = p.model;
+    if (!keepKey) S.cfg.apiKey = '';
+  }
+
+  function allStops() {
+    var out = [];
+    S.days.forEach(function (d) { d.stops.forEach(function (s) { out.push(s); }); });
+    return out;
+  }
+
+  /* ---------- toast ---------- */
+  var toastT;
+  function toast(msg) {
+    var el = $('#toast');
+    el.textContent = msg; el.classList.add('on');
+    clearTimeout(toastT);
+    toastT = setTimeout(function () { el.classList.remove('on'); }, 2200);
+  }
+
+  /* ---------- 渲染 ---------- */
+
+  function renderEnv() {
+    var b = $('#env');
+    b.textContent = ENV.wechat ? '微信内' : (ENV.ios ? 'iOS' : ENV.android ? 'Android' : '桌面/其他');
+    b.className = 'env' + (ENV.wechat ? ' warn' : '');
+    $('#wxbar').className = 'wxbar' + (ENV.wechat ? ' on' : '');
+  }
+
+  function renderInput() {
+    $('#tabText').className = S.tab === 'text' ? 'on' : '';
+    $('#tabImg').className = S.tab === 'img' ? 'on' : '';
+    $('#paneText').style.display = S.tab === 'text' ? '' : 'none';
+    $('#paneImg').style.display = S.tab === 'img' ? '' : 'none';
+    $('#thumbs').innerHTML = S.images.map(function (im) {
+      return '<img src="' + im.dataUrl + '" alt="">';
+    }).join('');
+    $('#btnExtract').disabled = !S.images.length || !!S.busy;
+  }
+
+  function renderStops() {
+    var host = $('#stops');
+    if (!S.days.length) {
+      host.innerHTML = '<div class="note">还没有地点。上面粘贴文案或选截图，也可以直接「手动添加」。</div>';
+    } else {
+      host.innerHTML = S.days.map(function (d, di) {
+        return '<div class="day"><div class="daylabel">' + esc(d.label) + '</div>' +
+          d.stops.map(function (s, si) {
+            var cls = s.error ? 'bad' : (s.lat != null ? 'ok' : (s.conf != null && s.conf < 0.7 ? 'low' : ''));
+            var meta = '', mcls = '';
+            if (s.error) { meta = s.error; mcls = ' err'; }
+            else if (s.lat != null) {
+              meta = '✓ ' + (s.matched || s.name) + (s.address ? ' · ' + s.address : '');
+              mcls = ' hit';
+            } else if (s.note) meta = s.note;
+            else if (s.conf != null && s.conf < 0.7) meta = '不确定是不是地点，请确认';
+            return '<div class="stop ' + cls + '" data-d="' + di + '" data-s="' + si + '">' +
+              '<span class="idx mono">' + (si + 1) + '</span>' +
+              '<div class="body">' +
+                '<input class="nm" value="' + esc(s.name) + '" data-act="rename">' +
+                (meta ? '<div class="meta' + mcls + '">' + esc(meta) + '</div>' : '') +
+              '</div>' +
+              '<div class="ops">' +
+                '<button data-act="up" aria-label="上移">▲</button>' +
+                '<button data-act="down" aria-label="下移">▼</button>' +
+              '</div>' +
+              '<button class="del" data-act="del" aria-label="删除">✕</button>' +
+            '</div>';
+          }).join('') + '</div>';
+      }).join('');
+    }
+    var n = allStops().length;
+    var got = allStops().filter(function (s) { return s.lat != null; }).length;
+    $('#stopCount').textContent = n ? n + ' 个地点' + (got ? '，' + got + ' 个已定位' : '') : '';
+    $('#btnGeo').disabled = !n || !!S.busy;
+    $('#btnBuild').disabled = n < 2 || !!S.busy;
+  }
+
+  function renderCfg() {
+    var c = S.cfg;
+    $('#visionPreset').value = c.visionPreset;
+    $('#endpoint').value = c.endpoint;
+    $('#model').value = c.model;
+    $('#apiKey').value = c.apiKey;
+    $('#geoProvider').value = c.geoProvider;
+    $('#geoAk').value = c.geoAk;
+    $('#proxy').value = c.proxy;
+    $('#city').value = S.city;
+    $('#mode').value = S.mode;
+    $('#originIsMe').checked = S.originIsMe;
+    $('#amapLoose').checked = S.amapLoose;
+    var p = ZZVision.PRESETS[c.visionPreset];
+    $('#presetNote').textContent = p ? p.note : '';
+  }
+
+  function renderOut(res) {
+    var host = $('#out');
+    if (!res) { host.innerHTML = ''; return; }
+    if (res.mode === 'none') {
+      host.innerHTML = '<div class="note err">' + esc(res.reason) + '</div>';
+      return;
+    }
+    var head = '';
+    if (res.mode === 'segment') {
+      head = '<div class="hint">' + esc(res.reason) +
+        '。途经点参数（高德 vialons/vialats、百度 viaPoints）都要求经纬度，只给名字传不了。' +
+        '想要一条链接带完整行程，需要在设置里填地图 Key 后点「解析坐标」。</div>';
+    }
+    host.innerHTML = head + res.plans.map(function (p) {
+      return '<div class="plan"><div class="hd"><div class="t">' + esc(p.title) + '</div>' +
+        (p.note ? '<div class="n">' + esc(p.note) + '</div>' : '') + '</div>' +
+        p.legs.map(function (lg) {
+          var path = '<b>' + esc(lg.from.name) + '</b>' +
+            (lg.vias.length ? ' → <span class="via">' + lg.vias.map(function (v) { return esc(v.name); }).join(' → ') + '</span>' : '') +
+            ' → <b>' + esc(lg.to.name) + '</b>';
+          return '<div class="leg">' +
+            '<div class="path">' + (lg.title ? '<span class="mono">' + esc(lg.title) + '</span> ' : '') + path + '</div>' +
+            lg.links.map(function (k) {
+              return '<div class="lk">' +
+                '<a href="' + esc(k.url) + '"' + (k.kind === 'web' ? ' target="_blank" rel="noopener"' : '') +
+                  (k.kind === 'app' ? '' : ' class="alt"') + '>' + esc(k.label) + '</a>' +
+                '<span class="ev">' + esc(k.note) + '</span>' +
+                '<button class="cp" data-act="copy" data-url="' + esc(k.url) + '">复制</button>' +
+              '</div>';
+            }).join('') +
+          '</div>';
+        }).join('') + '</div>';
+    }).join('');
+  }
+
+  function render() { renderEnv(); renderInput(); renderStops(); renderCfg(); }
+
+  /* ---------- 动作 ---------- */
+
+  function fromParsed(days, city) {
+    S.days = days.map(function (d) {
+      return {
+        label: d.label,
+        stops: d.stops.map(function (s) {
+          return { id: ++uid, name: s.name, note: s.note || '', conf: s.conf };
+        }),
+      };
+    });
+    if (city && !S.city) S.city = city;
+    save(); renderStops(); renderCfg(); renderOut(null);
+  }
+
+  function doParseText() {
+    var t = $('#text').value;
+    if (!t.trim()) { toast('先粘贴点文案'); return; }
+    var r = ZZParse.parse(t);
+    if (!r.days.length) { toast('没解析出地点，可手动添加'); return; }
+    fromParsed(r.days, '');
+    toast('解析出 ' + r.stops.length + ' 个地点，请核对');
+  }
+
+  async function doExtractImages() {
+    if (!S.images.length) return;
+    S.busy = 'vision'; renderInput(); renderStops();
+    $('#visionStatus').innerHTML = '<span class="spin"></span> 识别中，通常十几秒…';
+    try {
+      var out = await ZZVision.extract(S.images, {
+        dialect: (ZZVision.PRESETS[S.cfg.visionPreset] || {}).dialect || 'openai',
+        endpoint: S.cfg.endpoint, model: S.cfg.model,
+        apiKey: S.cfg.apiKey, proxy: S.cfg.proxy,
+      });
+      if (!out.days.length) { $('#visionStatus').innerHTML = '<span class="note warn">模型没抽到地点，换张更清楚的截图，或改用粘贴文字。</span>'; }
+      else {
+        fromParsed(out.days, out.city);
+        $('#visionStatus').innerHTML = '<span class="note">识别完成，请核对下面的地点。</span>';
+      }
+    } catch (e) {
+      $('#visionStatus').innerHTML = '<span class="note err">' + esc(e.message) + '</span>' +
+        (e.detail ? '<details><summary>详细返回</summary><div class="note">' + esc(String(e.detail).slice(0, 500)) + '</div></details>' : '');
+    }
+    S.busy = ''; renderInput(); renderStops();
+  }
+
+  async function doGeocode() {
+    var stops = allStops();
+    if (!stops.length) return;
+    if (!S.cfg.geoAk) {
+      $('#geoStatus').innerHTML = '<span class="note warn">没填地图 Key。' +
+        (S.cfg.geoProvider === 'baidu' ? '百度：lbsyun.baidu.com 控制台创建应用，类型选「服务端」，开通「地点检索」。'
+                                       : '高德：console.amap.com 创建应用，Key 类型选「Web服务」。') +
+        '</span>';
+      return;
+    }
+    S.busy = 'geo'; renderStops();
+    try {
+      var res = await ZZGeo.resolveAll(stops, {
+        provider: S.cfg.geoProvider, ak: S.cfg.geoAk, proxy: S.cfg.proxy, city: S.city.trim(),
+      }, function (i, n) {
+        $('#geoStatus').innerHTML = '<span class="spin"></span> 定位中 ' + i + '/' + n;
+      });
+      res.forEach(function (r, i) {
+        var s = stops[i];
+        if (r.resolved) { s.lon = r.lon; s.lat = r.lat; s.matched = r.matched; s.address = r.address; s.error = ''; }
+        else { s.lon = s.lat = null; s.matched = ''; s.address = ''; s.error = r.error || '未定位'; }
+      });
+      var ok = res.filter(function (r) { return r.resolved; }).length;
+      $('#geoStatus').innerHTML = '<span class="note' + (ok === res.length ? '' : ' warn') + '">已定位 ' +
+        ok + '/' + res.length + (ok === res.length ? '' : '。未定位的可改名后重试，或直接删掉。') + '</span>';
+      save();
+    } catch (e) {
+      $('#geoStatus').innerHTML = '<span class="note err">' + esc(e.message) + '</span>';
+    }
+    S.busy = ''; renderStops();
+  }
+
+  function doBuild() {
+    var stops = allStops().map(function (s) {
+      var o = { name: s.name };
+      if (s.lat != null && s.lon != null) { o.lat = s.lat; o.lon = s.lon; }
+      return o;
+    });
+    var res = ZZLinks.build(stops, {
+      mode: S.mode, os: ENV.os, city: S.city.trim(),
+      originIsMe: S.originIsMe, amapLoose: S.amapLoose,
+      src: 'zhaozhezou', baiduSrc: (ENV.ios ? 'ios' : ENV.android ? 'andr' : 'webapp') + '.zhaozhezou.app',
+    });
+    renderOut(res);
+    $('#out').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function copy(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { toast('已复制'); },
+        function () { fallbackCopy(text); });
+    } else fallbackCopy(text);
+  }
+  function fallbackCopy(text) {
+    // file:// 与 http 非安全上下文下 navigator.clipboard 不可用
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); toast('已复制'); }
+    catch (e) { toast('复制失败，请长按链接手动复制'); }
+    document.body.removeChild(ta);
+  }
+
+  /* ---------- 事件 ---------- */
+
+  function bind() {
+    $('#tabText').onclick = function () { S.tab = 'text'; renderInput(); };
+    $('#tabImg').onclick = function () { S.tab = 'img'; renderInput(); };
+    $('#btnParse').onclick = doParseText;
+    $('#btnExtract').onclick = doExtractImages;
+    $('#btnGeo').onclick = doGeocode;
+    $('#btnBuild').onclick = doBuild;
+
+    $('#file').onchange = async function (e) {
+      var files = Array.prototype.slice.call(e.target.files || []).slice(0, 8);
+      S.images = [];
+      for (var i = 0; i < files.length; i++) {
+        try { S.images.push(await ZZNet.downscale(files[i], 1600, 0.85)); }
+        catch (err) { toast('有图片读不出来，已跳过'); }
+      }
+      renderInput();
+      e.target.value = '';
+    };
+
+    $('#btnAdd').onclick = function () {
+      if (!S.days.length) S.days.push({ label: '行程', stops: [] });
+      S.days[S.days.length - 1].stops.push({ id: ++uid, name: '', note: '', conf: 1 });
+      save(); renderStops();
+      var ins = document.querySelectorAll('#stops .nm');
+      if (ins.length) ins[ins.length - 1].focus();
+    };
+    $('#btnClear').onclick = function () {
+      if (!allStops().length || confirm('清空所有地点？')) {
+        S.days = []; save(); renderStops(); renderOut(null);
+      }
+    };
+
+    $('#stops').addEventListener('click', function (e) {
+      var btn = e.target.closest('button[data-act]'); if (!btn) return;
+      var row = btn.closest('.stop');
+      var di = +row.dataset.d, si = +row.dataset.s, act = btn.dataset.act;
+      var arr = S.days[di].stops;
+      if (act === 'del') arr.splice(si, 1);
+      else if (act === 'up' && si > 0) arr.splice(si - 1, 0, arr.splice(si, 1)[0]);
+      else if (act === 'down' && si < arr.length - 1) arr.splice(si + 1, 0, arr.splice(si, 1)[0]);
+      S.days = S.days.filter(function (d) { return d.stops.length; });
+      save(); renderStops();
+    });
+    $('#stops').addEventListener('change', function (e) {
+      var inp = e.target.closest('input[data-act="rename"]'); if (!inp) return;
+      var row = inp.closest('.stop');
+      var s = S.days[+row.dataset.d].stops[+row.dataset.s];
+      s.name = inp.value.trim();
+      // 改了名字，之前的坐标不再对应
+      s.lon = s.lat = null; s.matched = ''; s.address = ''; s.error = '';
+      save(); renderStops();
+    });
+
+    $('#out').addEventListener('click', function (e) {
+      var b = e.target.closest('button[data-act="copy"]');
+      if (b) { copy(b.dataset.url); }
+    });
+
+    $('#visionPreset').onchange = function (e) { applyPreset(e.target.value); save(); renderCfg(); };
+    [['endpoint', 'endpoint'], ['model', 'model'], ['apiKey', 'apiKey'],
+     ['geoProvider', 'geoProvider'], ['geoAk', 'geoAk'], ['proxy', 'proxy']].forEach(function (p) {
+      $('#' + p[0]).oninput = function (e) { S.cfg[p[1]] = e.target.value.trim(); save(); };
+    });
+    $('#city').oninput = function (e) { S.city = e.target.value; save(); };
+    $('#mode').onchange = function (e) { S.mode = e.target.value; save(); };
+    $('#originIsMe').onchange = function (e) { S.originIsMe = e.target.checked; save(); };
+    $('#amapLoose').onchange = function (e) { S.amapLoose = e.target.checked; save(); };
+    $('#btnDemo').onclick = function () {
+      $('#text').value = document.getElementById('demo').textContent.trim();
+      S.tab = 'text'; renderInput();
+    };
+  }
+
+  load(); bind(); render();
+})();
+</script>
+</body>
+</html>

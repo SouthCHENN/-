@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>照着走 · 截图转多段导航</title>
+<style>/*__CSS__*/</style>
+</head>
+<body>
+<div id="app">
+
+<header>
+  <span class="wm">照着走</span>
+  <span class="sub">小红书行程 → 地图多段导航</span>
+  <span class="env" id="env"></span>
+</header>
+
+<div class="wxbar" id="wxbar">
+  <b>微信内打不开地图 App。</b>微信只对合作方放行 scheme 唤起，高德/百度不在白名单里，没有参数能绕过。
+  请点右上角 <b>···</b> → <b>在浏览器中打开</b>，再回到这一步。
+</div>
+
+<section>
+  <h2><span class="n">1</span>放进行程</h2>
+  <div class="tabs">
+    <button id="tabText">粘贴文案</button>
+    <button id="tabImg">选截图</button>
+  </div>
+
+  <div id="paneText">
+    <textarea id="text" placeholder="把小红书笔记的文案粘贴进来&#10;&#10;支持 Day1/第一天 分天、1️⃣ 序号、09:00 时间线、A→B→C 箭头串联"></textarea>
+    <button class="btn" id="btnParse">解析文案</button>
+    <button class="btn ghost" id="btnDemo">填入示例看看效果</button>
+    <div class="note">纯本地解析，不联网，不上传。</div>
+  </div>
+
+  <div id="paneImg" style="display:none">
+    <label class="filebtn" for="file">＋ 选择截图（最多 8 张）</label>
+    <input type="file" id="file" accept="image/*" multiple style="display:none;position:absolute">
+    <div class="thumbs" id="thumbs"></div>
+    <button class="btn" id="btnExtract">识别截图</button>
+    <div id="visionStatus"></div>
+    <div class="note">图片会压到长边 1600px 后上传给你在设置里配的模型。要先填 endpoint / 模型 / Key。</div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="n">2</span>核对地点 <span class="sub mono" id="stopCount"></span></h2>
+  <div id="stops"></div>
+  <div class="row">
+    <button class="btn ghost" id="btnAdd">＋ 手动添加</button>
+    <button class="btn mag" id="btnClear">清空</button>
+  </div>
+  <div class="note">上下箭头调顺序，点名字可直接改。<span style="color:var(--amber)">橙边</span>=拿不准是不是地点，<span style="color:var(--green)">绿边</span>=已拿到坐标。</div>
+</section>
+
+<section>
+  <h2><span class="n">3</span>定位（可选，但决定能否带途经点）</h2>
+  <div class="row">
+    <div><label>城市（消歧用）</label><input id="city" placeholder="深圳"></div>
+    <div><label>出行方式</label>
+      <select id="mode"><option value="car">驾车</option><option value="bus">公交</option>
+        <option value="walk">步行</option><option value="ride">骑行</option></select></div>
+  </div>
+  <button class="btn ghost" id="btnGeo">解析坐标</button>
+  <div id="geoStatus"></div>
+  <div class="note">
+    不做这步也能出链接，但只能<b>逐段导航</b>（每段 A→B 用地名直传）。
+    高德的 <span class="mono">vialons/vialats</span> 和百度的 <span class="mono">viaPoints</span> 都要求经纬度，只给名字传不了途经点。
+  </div>
+</section>
+
+<section>
+  <h2><span class="n">4</span>生成链接</h2>
+  <label style="display:flex;align-items:center;gap:8px;margin:0 0 8px">
+    <input type="checkbox" id="originIsMe" style="width:auto;min-height:0"> 用「我的位置」当起点（第一个地点变成途经点）
+  </label>
+  <button class="btn" id="btnBuild">生成导航链接</button>
+  <div id="out"></div>
+</section>
+
+<section>
+  <h2>设置</h2>
+  <details>
+    <summary>识别模型（图片识别才需要）</summary>
+    <label>服务商</label>
+    <select id="visionPreset">
+      <option value="qwen">通义千问 VL（阿里百炼）</option>
+      <option value="doubao">豆包 视觉（火山方舟）</option>
+      <option value="claude">Claude（Anthropic）</option>
+      <option value="custom">自定义（OpenAI 兼容）</option>
+    </select>
+    <div class="note" id="presetNote"></div>
+    <label>Endpoint</label><input id="endpoint" placeholder="https://...">
+    <label>模型名 / 接入点 ID</label><input id="model" placeholder="qwen-vl-max 或 ep-xxxxx">
+    <label>API Key</label><input id="apiKey" type="password" placeholder="sk-...">
+    <div class="hint">
+      千问和豆包的 endpoint 与模型名我<b>没能一手核对</b>（本机访问不了 help.aliyun.com / volcengine.com），
+      按公开检索填的默认值，以官方控制台为准，填错了在这里改即可。
+      豆包的 model 通常是控制台<b>接入点 ID（ep- 开头）</b>而不是模型名。
+    </div>
+  </details>
+
+  <details>
+    <summary>地图 Key（解析坐标才需要）</summary>
+    <label>服务商</label>
+    <select id="geoProvider"><option value="baidu">百度地图</option><option value="amap">高德地图</option></select>
+    <label>AK / Key</label><input id="geoAk" type="password" placeholder="服务端类型的 Key">
+    <div class="note">百度：lbsyun.baidu.com 创建「服务端」应用并开通地点检索。高德：console.amap.com 创建「Web服务」Key。</div>
+  </details>
+
+  <details>
+    <summary>代理（撞 CORS 时才需要）</summary>
+    <label>代理地址</label><input id="proxy" placeholder="https://xxx.workers.dev">
+    <div class="note">
+      浏览器直连大模型和地图的服务端 API 大概率被 CORS 拦。填了代理后，所有外部请求会转发过去。
+      仓库里的 <span class="mono">proxy/worker.js</span> 是一个可直接部署到 Cloudflare Workers 的最小实现。
+    </div>
+  </details>
+
+  <details>
+    <summary>高德途经点上限</summary>
+    <label style="display:flex;align-items:center;gap:8px">
+      <input type="checkbox" id="amapLoose" style="width:auto;min-height:0"> 放宽到 10 个（默认 3 个）
+    </label>
+    <div class="note">
+      3 个是两家都保证的安全值（百度官方明文上限，也是高德 App 里手动添加的上限）。
+      高德官方活动页发出过 vian=10 的链接，所以 10 个可能可行，<b>但我没有实测条件</b>——
+      超限是全生效、被截断还是整条失败，未知。
+    </div>
+  </details>
+</section>
+
+<section>
+  <h2>这个工具能做到什么</h2>
+  <div class="note">
+    <b>已核实</b>：百度 <span class="mono">baidumap://map/navi</span> 带 <span class="mono">viaPoints</span> 可以带途经点<b>直接进导航态</b>（官方文档 + 官方 Android SDK 反编译源码双重佐证），官方上限 3 个途经点。<br><br>
+    <b>已核实</b>：高德带途经点只能落到<b>路线规划页</b>，需要再点一次「开始导航」——
+    能一键直达导航的 <span class="mono">androidamap://navi</span> 结构上没有途经点参数位。<br><br>
+    <b>待你实测</b>：高德的 <span class="mono">vian/vialons/vialats/vianames</span> 未进官方参数表（证据是高德自家 JS API 源码和官方活动页在用）；
+    百度 <span class="mono">direction</span> 上的 viaPoints 官方文档有示例但官方 SDK 没拼。这两条都得在真机上点一次才知道。<br><br>
+    详见仓库里的 <span class="mono">RESEARCH.md</span>，每条结论都标了证据等级和来源。
+  </div>
+</section>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="text/plain" id="demo">
+深圳2天1夜｜这样玩真的绝了🥹
+📍Day1
+1️⃣ 深圳湾公园 🌊 骑行超舒服，日落绝美
+2️⃣ 超好拍的海上世界，人均80
+3️⃣ 蛇口老街（宵夜必去）
+Day2️⃣
+1️⃣ 世界之窗 门票220
+2️⃣ 网红欢乐谷～排队2小时
+#深圳旅游 #周末去哪儿
+</script>
+
+<script>/*__JS__*/</script>
+</body>
+</html>
