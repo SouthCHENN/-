@@ -17,7 +17,7 @@
 </header>
 
 <div class="wxbar" id="wxbar">
-  <b>微信内打不开地图 App。</b>微信只对合作方放行 scheme 唤起，高德/百度不在白名单里，没有参数能绕过。
+  <b>微信内基本打不开地图 App。</b>微信只对合作方放行 scheme 唤起，高德/百度不在白名单里。
   请点右上角 <b>···</b> → <b>在浏览器中打开</b>，再回到这一步。
 </div>
 
@@ -126,8 +126,8 @@
     </label>
     <div class="note">
       3 个是两家都保证的安全值（百度官方明文上限，也是高德 App 里手动添加的上限）。
-      高德官方活动页发出过 vian=10 的链接，所以 10 个可能可行，<b>但我没有实测条件</b>——
-      超限是全生效、被截断还是整条失败，未知。
+      高德的 URI <b>解析层</b>已确认无上限、无截断（客户端代码里是全量遍历数组），
+      但下游路线规划页是否二次截断到 UI 上限，<b>只能真机实测</b>。
     </div>
   </details>
 </section>
@@ -138,8 +138,11 @@
     <b>已核实</b>：百度 <span class="mono">baidumap://map/navi</span> 带 <span class="mono">viaPoints</span> 可以带途经点<b>直接进导航态</b>（官方文档 + 官方 Android SDK 反编译源码双重佐证），官方上限 3 个途经点。<br><br>
     <b>已核实</b>：高德带途经点只能落到<b>路线规划页</b>，需要再点一次「开始导航」——
     能一键直达导航的 <span class="mono">androidamap://navi</span> 结构上没有途经点参数位。<br><br>
-    <b>待你实测</b>：高德的 <span class="mono">vian/vialons/vialats/vianames</span> 未进官方参数表（证据是高德自家 JS API 源码和官方活动页在用）；
-    百度 <span class="mono">direction</span> 上的 viaPoints 官方文档有示例但官方 SDK 没拼。这两条都得在真机上点一次才知道。<br><br>
+    <b>已核实</b>：高德的 <span class="mono">vialons/vialats/vianames</span> 由高德 App 自身的解析代码
+    逐字读取并按 <span class="mono">|</span> 切分。注意 <span class="mono">vian</span> 的值被读取后即丢弃，
+    真正的硬约束是 vialons 与 vialats <b>长度必须相等</b>，否则整组途经点被静默丢弃。<br><br>
+    <b>待你实测</b>：iOS 端对非空 via 的处理无代码可查；高德 <span class="mono">t</span> 参数的枚举无证据；
+    百度 <span class="mono">direction</span> 上的 viaPoints 官方 SDK 没拼；两家传 3 个以上途经点的行为。<br><br>
     详见仓库里的 <span class="mono">RESEARCH.md</span>，每条结论都标了证据等级和来源。
   </div>
 </section>

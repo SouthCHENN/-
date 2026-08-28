@@ -89,20 +89,36 @@ baidumap://map/direction?origin=name:{名}|latlng:{纬度},{经度}&destination=
 ### 高德（**二手 / 工程惯例**）
 
 ```
-Web/H5（官方唯一文档化的 Web 途经点通道，官方示例只给了 1 个 via）
-https://uri.amap.com/navigation?from={经度},{纬度},{名}&to={经度},{纬度},{名}
-  &via={经度},{纬度},{名}&mode=car&policy=1&coordinate=gaode&callnative=1&src=...
-
-App scheme（vian 系列未进官方参数表）
-amapuri://drive/multiViaPointPlan/?slat=&slon=&sname=&dlat=&dlon=&dname=&dev=0&t=0
+App scheme + 多途经点（Android，证据最强）
+amapuri://route/plan/?sourceApplication={应用名}&slat={纬度}&slon={经度}&sname={名}
+  &dlat={纬度}&dlon={经度}&dname={名}&dev=0&t=0
   &vian={个数}&vialons={经度1}%7C{经度2}&vialats={纬度1}%7C{纬度2}&vianames={名1}%7C{名2}
 iOS 同参数挂在 iosamap://path
+
+Web/H5（官方示例只给了 1 个 via）
+https://uri.amap.com/navigation?from={经度},{纬度},{名}&to={经度},{纬度},{名}
+  &via={经度},{纬度},{名}&mode=car&policy=1&coordinate=gaode&callnative=1&src=...
 ```
 
-`vian/vialons/vialats/vianames` 的证据是两条**旁证**，不是官方文档：
+`vialons/vialats/vianames` 现在有**一手证据**：高德 App 自身的 `DriveUtil.startRoute`
+逐一 `getQueryParameter("vialons"/"vialats"/"vianames")` 并 `.split("\\|")`。
+客户端解析代码的证据强度不低于文档。
 
-1. 高德自家 JS API 的打包产物里就在拼 `iosamap://path?...&vian=0&vialons=&vialats=&vianames=`（多仓库、多混淆版本一致）。
-2. 高德官方活动页 `act.amap.com` 挂过一条真实的 **`vian=10`** 十途经点链接。
+两处必须知道的细节：
+
+- **`vian` 的值被读取后直接丢弃**（裸调用无赋值），实际途经点个数取自 split 后的数组长度。
+  所以「vian 必须与三个列表等长」是**无根据的**。
+- 真正的硬性约束是 **`vialons.length === vialats.length`**，不等则**整组途经点被静默丢弃**。
+  `vianames` 反而可以更短，缺失项回退到默认名。
+
+### ⚠️ 一个被撤下的「首选方案」
+
+早期资料里出现过 `amapuri://drive/multiViaPointPlan/`，声称是高德官方活动页发出的
+10 途经点专用 host，一度被列为首选。**复核后判定为很可能不存在，已从代码中移除**：
+
+- GitHub 全网检索 `multiViaPointPlan` 与 `ViaPointPlan` 均 **0 命中**；
+- 该 host **不存在于**高德自家反编译的 drive bundle 中，而同一份代码里 `amapuri://route/plan/` 是存在的；
+- 唯一来源是搜索摘要——而本次调研中**当场抓到该摘要后端编造内容**（见下）。
 
 ---
 
@@ -131,19 +147,27 @@ iOS 同参数挂在 iosamap://path
 
 按重要性排序。这些**不是已知结论**，工具里都标了「未证实」。
 
-1. **高德 `vian` 系列到底认不认**（Android `multiViaPointPlan` 与 `route/plan`、iOS `path`）。未进官方参数表。
-2. **高德途经点传超过 3 个会怎样**——全生效、截断到 3、还是整条失败？官方活动页用过 `vian=10`，但高德 App 界面手动只能加 3 个。工具默认 3 个，设置里可放宽到 10。
-3. **百度传 2 个以上途经点是否真的生效**（官方 SDK 的 bug 意味着这条路径可能从没被认真走通过）。
-4. **百度 `direction` 上的 `viaPoints`**——官方 SDK 的 direction 构造器**不拼**这个参数，只有二手文档示例提到。工具把它放在 navi 之后作为备选。
-5. **高德 Web `via` 传多个时的分隔符**——官方只文档化了 1 个 via。社区一半用 `|`、一半用 `;`。工具默认 `|`，需要时把 `%7C` 换成 `%3B` 各测一遍，并确认是不是只有第一个途经点生效。
-6. **浏览器直连千问/豆包/地图 Web 服务 API 是否被 CORS 拦**——大概率会。撞了就部署 `proxy/worker.js`。
-7. **千问/豆包的 endpoint 与模型名**——`help.aliyun.com` 与 `www.volcengine.com` 均无法访问，默认值按公开检索填写，以官方控制台为准。豆包的 `model` 通常是**接入点 ID（`ep-` 开头）**而非模型名。
+1. **高德途经点传超过 3 个会怎样**——URI 解析层已确认**无上限、无截断**（`DriveUtil` 的循环
+   `for (i=0; i<vialons.length; i++)` 全量遍历，类内 `MAX_COUNT=20` 在该方法中未被引用），
+   但下游路线规划页是否二次截断到 UI 上限，单凭一个文件无法判断。工具默认 3 个，设置里可放宽到 10。
+2. **iOS 端对非空 `via` 的处理完全未验证**。Android 侧有客户端解析代码，
+   iOS 侧只有「高德自家 JS API 发送**空** via 值」这一间接证据。
+   不要因为 Android 已证实就假定 iOS 同构。
+3. **高德 `t` 参数的枚举**（0驾车/1公交/2步行/3骑行）**没有任何证据支撑**。
+   已证实的只有「JS API 对 `androidamap://route` 的 t 做了 0→2、2→4 重映射」，说明枚举跨 host 不通用。
+4. **百度传 2 个以上途经点是否真的生效**（官方 SDK 的 bug 意味着这条路径可能从没被认真走通过）。
+5. **百度 `direction` 上的 `viaPoints`**——官方 SDK 的 direction 构造器**不拼**这个参数，只有二手文档示例提到。工具把它放在 navi 之后作为备选。
+7. **高德 Web `via` 传多个时的分隔符**——官方只文档化了 1 个 via。社区一半用 `|`、一半用 `;`。工具默认 `|`，需要时把 `%7C` 换成 `%3B` 各测一遍，并确认是不是只有第一个途经点生效。
+8. **浏览器直连千问/豆包/地图 Web 服务 API 是否被 CORS 拦**——大概率会。撞了就部署 `proxy/worker.js`。
+9. **千问/豆包的 endpoint 与模型名**——`help.aliyun.com` 与 `www.volcengine.com` 均无法访问，默认值按公开检索填写，以官方控制台为准。豆包的 `model` 通常是**接入点 ID（`ep-` 开头）**而非模型名。
 
 ---
 
 ## 五、已确认做不到的事
 
-- **微信内一键拉起地图 App**——微信只对合作方放行 scheme，高德/百度不在白名单，没有参数能绕过。
+- **微信内一键拉起地图 App**——实践中普遍失败。微信只对合作方放行 scheme，高德/百度不在白名单。
+  （据实说明：这条属业界共识，本次**未取得一手证据**，`developers.weixin.qq.com` 不可达，
+  故不用「必然/100%」这类绝对措辞。）
   `wx-open-launch-app` 只能拉起**你自己主体名下已绑定的 App**，原理上就拉不了高德，不是门槛问题。
   工具的做法是检测 `MicroMessenger` 后直接显示「右上角 → 在浏览器中打开」引导，不做无谓尝试。
 - **百度网页版带途经点**——`api.map.baidu.com/direction` 的官方参数表无此项（**二手**），
@@ -158,6 +182,12 @@ iOS 同参数挂在 iosamap://path
 
 - 「高德途经点上限 16 个」——16 是 **JS API 2.0 / Web 服务 API** 的路线规划上限，
   和唤起 App 的 URI API 完全是两套 API 家族，对 `via` 没有任何约束力。GitHub 上多个项目搞错了这点。
+  （16 这个数字本身也只有二手来源，未能一手证实；但「不能挪用到 URI API」这个推理是确定的——
+  高德 URI 解析器里根本没有 16 这个数。）
+- 「PC 端 `ditu.amap.com/dir` 用 `via[0][name]` 表达多途经点」——**无依据**。
+  全部命中都是 2026 年的 AI 生成旅行规划 skill，是同一段模板代码的互相复制，
+  且彼此矛盾（一处写死 max 6，一处注释「无硬上限」，两个数字都没有来源）。
+  这是 LLM 生成内容自我繁殖后被当成生态共识的典型，不构成独立证据。
 - 「百度 Web 服务算路途经点上限 10~18」——精确值是 **18**（**一手**：`baidu-maps` 官方参数表
   「支持18个以内的有序途径点」），端点是 `/direction/v2/driving`（`/v1` 已过时），
   参数名是 **`waypoints`**（竖线分隔的「纬度,经度」串），**不是** `viaPoints`。

@@ -32,6 +32,9 @@
   /* 百度 direction 的 mode 合法集经官方 SDK 源码确认为
      {driving, transit, walking, neweng, truck} —— 没有 riding。
      骑行在百度是独立入口 baidumap://map/bikenavi，且不支持途经点。 */
+  /* ⚠️ 高德 t 的具体枚举（0驾车/1公交/2步行/3骑行）没有任何一手证据支撑——
+     已证实的只有「高德 JS API 对 androidamap://route 的 t 做了 0→2、2→4 重映射」，
+     说明枚举跨 host 不通用。这里沿用最广泛的写法，属待实测项。 */
   var MODE = {
     car:  { amapT: '0', amapWeb: 'car',  baidu: 'driving' },
     bus:  { amapT: '1', amapWeb: 'bus',  baidu: 'transit' },
@@ -87,13 +90,19 @@
     return u;
   }
 
-  /** [半官方] App scheme。vian + vialons/vialats/vianames 三列表等长，| 分隔。
-   *  host=multi 用高德自家发多途经点行程的 amapuri://drive/multiViaPointPlan/。 */
-  function amapScheme(seg, opt, os, host) {
+  /** App scheme + 多途经点。
+   *  证据：高德 App 自身的 DriveUtil.startRoute 逐一读取 vialons/vialats/vianames
+   *  并按 | split —— 这是客户端解析代码的一手证据，强于文档转述。
+   *  硬性约束是 vialons.length === vialats.length（不等则整组途经点被静默丢弃）；
+   *  vian 的值被读取后直接丢弃，实际个数取自 split 数组长度，这里仍带上以防其他解析路径用到。
+   *  ⚠️ 曾出现在早期资料里的 amapuri://drive/multiViaPointPlan/ 已移除：
+   *     GitHub 全网检索 0 命中，且不存在于高德自家反编译的 drive bundle 中，
+   *     唯一来源是会编造内容的搜索摘要，判定为很可能不存在。
+   *  ⚠️ iOS 侧只有「高德 JS API 发送空 via 值」这一间接证据，非空 via 的实际处理未验证。 */
+  function amapScheme(seg, opt, os) {
     var m = MODE[opt.mode] || MODE.car;
     var from = seg[0], to = seg[seg.length - 1], vias = seg.slice(1, -1);
-    var base = os === 'ios' ? 'iosamap://path?' :
-      (host === 'multi' ? 'amapuri://drive/multiViaPointPlan/?' : 'amapuri://route/plan/?');
+    var base = os === 'ios' ? 'iosamap://path?' : 'amapuri://route/plan/?';
     var q = 'sourceApplication=' + E(opt.src || 'zhaozhezou');
     // 起点三项全空 = 用「我的位置」
     if (hasCoord(from)) q += '&slat=' + from.lat + '&slon=' + from.lon + '&sname=' + E(from.name);
@@ -206,21 +215,19 @@
       var amapMax = opt.amapLoose ? VIA_MAX.amapLoose : VIA_MAX.amap;
       plans.push({
         app: 'amap', title: '高德地图',
-        note: '落地是路线规划页，需再点一次「开始导航」',
+        note: '落地是路线规划页，需再点一次「开始导航」。URI 解析层无途经点数量上限，下游是否截断未知',
         legs: chunkRoute(pts, amapMax).map(function (seg, i, arr) {
           var webUrl = amapWeb(seg, opt);
           var links = [];
           if (os === 'android') {
-            links.push({ kind: 'app', label: '打开高德 App', note: '[半官方] 多途经点专用 host',
-              url: toIntent('amapuri', 'com.autonavi.minimap', amapScheme(seg, opt, 'android', 'multi'), webUrl) });
-            links.push({ kind: 'app-alt', label: '备选：路线规划 host', note: '[半官方] 上一条不灵时试这个',
-              url: toIntent('amapuri', 'com.autonavi.minimap', amapScheme(seg, opt, 'android', 'plan'), webUrl) });
+            links.push({ kind: 'app', label: '打开高德 App', note: '[高德客户端代码证实]',
+              url: toIntent('amapuri', 'com.autonavi.minimap', amapScheme(seg, opt, 'android'), webUrl) });
           } else if (os === 'ios') {
-            links.push({ kind: 'app', label: '打开高德 App', note: '[半官方] iosamap://path + vian',
-              url: amapScheme(seg, opt, 'ios', 'plan') });
+            links.push({ kind: 'app', label: '打开高德 App', note: '[iOS 侧 via 未验证]',
+              url: amapScheme(seg, opt, 'ios') });
           }
           links.push({ kind: 'web', label: os === 'other' ? '打开高德' : '网页版（未装 App）',
-            note: seg.length > 3 ? '[实测] 官方只文档化了 1 个途经点，多个需验证' : '[官方]',
+            note: seg.length > 3 ? '[未证实] 官方只有 1 个 via 的示例，多 via 分隔符无依据' : '[via 参数真实，文档化程度存疑]',
             url: webUrl });
           return {
             title: arr.length > 1 ? '第 ' + (i + 1) + '/' + arr.length + ' 段' : '',
@@ -266,10 +273,10 @@
         links2.push({ kind: 'app', label: '百度地图', note: '[SDK印证] origin/destination 支持纯地名',
           url: toIntent('bdapp', 'com.baidu.BaiduMap', baiduDirection(seg2, opt), bweb) });
         links2.push({ kind: 'app-alt', label: '高德地图', note: '[实测] 无坐标时仅凭名称发起',
-          url: toIntent('amapuri', 'com.autonavi.minimap', amapScheme(seg2, opt, 'android', 'plan'), amapWeb(seg2, opt)) });
+          url: toIntent('amapuri', 'com.autonavi.minimap', amapScheme(seg2, opt, 'android'), amapWeb(seg2, opt)) });
       } else if (os === 'ios') {
         links2.push({ kind: 'app', label: '百度地图', note: '[SDK印证]', url: baiduDirection(seg2, opt) });
-        links2.push({ kind: 'app-alt', label: '高德地图', note: '[实测]', url: amapScheme(seg2, opt, 'ios', 'plan') });
+        links2.push({ kind: 'app-alt', label: '高德地图', note: '[实测]', url: amapScheme(seg2, opt, 'ios') });
       }
       links2.push({ kind: 'web', label: '网页版', note: '[官方]', url: bweb });
       legs.push({
