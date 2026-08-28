@@ -109,4 +109,5 @@ node test/e2e.js          # Playwright 端到端（412×915 Android UA）
 - 解析器只负责拿到 80%，剩下的靠 UI 里增删改排序
 - Key 存在浏览器 localStorage 里。自用没问题；要分享给别人用，把 Key 放进代理的环境变量
 
+设计方案（产品定义、能力阶梯、架构与决策依据）：[`DESIGN.md`](DESIGN.md)
 完整的证据等级与待实测清单：[`RESEARCH.md`](RESEARCH.md)
