@@ -24,27 +24,42 @@
 
 ## 一、最重要的三条结论
 
-### 1. 途经点一律需要经纬度，起终点可以只给名字
+### 1. 国产两家的途经点必须要经纬度；Apple 地图是唯一的例外
 
 | 接口 | 途经点参数 | 坐标是否必需 |
 |---|---|---|
 | 高德 Web `uri.amap.com/navigation` | `via=经度,纬度,名称` | 必需（坐标是位置参数） |
 | 高德 App scheme | `vian` + `vialons`/`vialats`/`vianames` | 必需（经度、纬度、名称三个等长列表） |
 | 百度 App scheme | `viaPoints={"viaPoints":[{name,lat,lng}]}` | 必需（`lat`/`lng` 是 JSON 必需键） |
+| **Apple 地图** `maps.apple.com/directions` | `waypoint=`（重复该参数） | **不必需** |
 
-**推论**：不填地图 Key 就拿不到坐标，拿不到坐标就传不了途经点。
-本工具因此设计成双轨——无 key 时降级为逐段导航（每段 A→B 用地名直传），填了 key 升级为真·多途经点。
+**Apple 地图这一条是全篇唯一读到官方文档原文的**（`developer.apple.com` 的
+`unified-map-urls` 文档 JSON，非搜索摘要）。官方原文逐字：
+
+> `waypoint` — "This parameter describes destinations in between the `source` and
+> `destination` you can use for multistop routing"，取值为
+> **"Specify an address, coordinate, or a place name"**；
+> **"You can specify multiple waypoints by repeating the `waypoint` parameter"**
+
+即：**多个途经点靠重复参数表达，不是竖线也不是逗号；且途经点可以只给地名。**
+另有 `start` 参数——"Starts navigation after the delay in seconds that you specify"，
+所以 Apple 地图能做到**多途经点 + 自动开始导航**，这是高德做不到、百度需要坐标才能做到的组合。
+
+**推论**：不填地图 Key 拿不到坐标，高德/百度就传不了途经点，只能逐段走；
+但 **iOS 上 Apple 地图仍可一条链接走完全程**。本工具因此在无坐标时同时给出这两种。
 
 补充（**一手**）：高德 `uri.amap.com/navigation` 的 `from`/`to` 同样要求「经度,纬度,名称」，
 **纯名字不成立**，只能退化到 `uri.amap.com/search?keyword=`。而百度 `direction` 的
 `origin`/`destination` **支持纯地名**——这是零 key 路径选百度作主力的原因。
 
-### 2. 「多途经点 + 直接开始导航」只有百度能做到
+### 2. 「多途经点 + 直接开始导航」：百度可以，Apple 可能可以，高德不行
 
 - **百度**（**一手**）：`baidumap://map/navi` 的构造器里确实 `append("&viaPoints=")`，
   且 navi 就是直接进入导航态的入口。参数与拼接顺序逐字对照官方 Android SDK：
   `origin / origin_uid / location / destination_uid / src / viaPoints / type / mode`。
   iOS 侧 `BMKNavigation.h` 声明了 `NSArray<BMKPlanNode *> *viaPoints`，两端语义一致。
+- **Apple**（**官方文档**）：`start={秒数}` 明文是「延迟指定秒数后开始导航」，与 `waypoint` 可同时使用。
+  组合行为未实测，工具里标了「未实测」。
 - **高德**（**二手**）：能一键直达导航的 `androidamap://navi` 结构上**没有途经点参数位**；
   带途经点的 `amapuri://route/plan/` 落地是**路线规划页**，用户需再点一次「开始导航」。
   这是高德 scheme 体系的结构性限制，不是参数没找对。
@@ -63,6 +78,24 @@
 ---
 
 ## 二、已核实可用的模板
+
+### Apple 地图（**官方文档原文**，本文件里证据最硬的一条）
+
+```
+https://maps.apple.com/directions?source={地址|坐标|地名}&destination={地址|坐标|地名}
+  &waypoint={...}&waypoint={...}          ← 重复参数表达多个途经点
+  &mode={driving|walking|transit|cycling}
+  &avoid={tolls|highways|busy-roads|stairs}   逗号分隔
+  &start={秒数}                            延迟 N 秒后自动开始导航
+```
+
+- 坐标顺序 **纬度,经度**（对照官方示例 `waypoint=37.795442,-122.393624`）。
+- 省略 `source` → 以「当前位置」为起点（官方明文）。
+- 统一 URL 方案需 **iOS 18.4+**。
+- **官方未声明途经点数量上限。**
+
+**未验证的四点**（Apple 文档不覆盖中国大陆特殊情况）：中文地名的解析质量、
+国内坐标基准是 GCJ-02 还是 WGS-84、`waypoint` 实际能塞几个、iOS 18.4 以下的降级行为。
 
 ### 百度（**一手**，逐参数对照官方 SDK 构造器）
 

@@ -66,8 +66,9 @@
   <button class="btn ghost" id="btnGeo">解析坐标</button>
   <div id="geoStatus"></div>
   <div class="note">
-    不做这步也能出链接，但只能<b>逐段导航</b>（每段 A→B 用地名直传）。
-    高德的 <span class="mono">vialons/vialats</span> 和百度的 <span class="mono">viaPoints</span> 都要求经纬度，只给名字传不了途经点。
+    不做这步<b>高德/百度</b>只能逐段导航——它们的 <span class="mono">vialons/vialats</span> 与
+    <span class="mono">viaPoints</span> 都要求经纬度。<br>
+    <b style="color:var(--green)">例外：Apple 地图的途经点接受纯地名</b>，所以 iOS 上不填 Key 也能一条链接走完全程。
   </div>
 </section>
 
@@ -135,7 +136,11 @@
 <section>
   <h2>这个工具能做到什么</h2>
   <div class="note">
-    <b>已核实</b>：百度 <span class="mono">baidumap://map/navi</span> 带 <span class="mono">viaPoints</span> 可以带途经点<b>直接进导航态</b>（官方文档 + 官方 Android SDK 反编译源码双重佐证），官方上限 3 个途经点。<br><br>
+    <b>已核实（官方文档原文）</b>：Apple 地图 <span class="mono">maps.apple.com/directions</span> 的
+    <span class="mono">waypoint</span> 参数「接受地址、坐标<b>或地名</b>」，且「重复该参数即可指定多个途经点」。
+    这是三家里<b>唯一途经点不要坐标</b>的，也是唯一读到官方文档原文的一条。配 <span class="mono">start=N</span>
+    可延迟 N 秒自动开始导航。需 iOS 18.4+，国内用的是高德数据。<br><br>
+    <b>已核实</b>：百度 <span class="mono">baidumap://map/navi</span> 带 <span class="mono">viaPoints</span> 可以带途经点<b>直接进导航态</b>（官方 Android SDK 反编译源码 + iOS 头文件 + 官方 Flutter 插件三链印证），官方上限 3 个途经点。<br><br>
     <b>已核实</b>：高德带途经点只能落到<b>路线规划页</b>，需要再点一次「开始导航」——
     能一键直达导航的 <span class="mono">androidamap://navi</span> 结构上没有途经点参数位。<br><br>
     <b>已核实</b>：高德的 <span class="mono">vialons/vialats/vianames</span> 由高德 App 自身的解析代码

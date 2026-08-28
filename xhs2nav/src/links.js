@@ -36,10 +36,10 @@
      已证实的只有「高德 JS API 对 androidamap://route 的 t 做了 0→2、2→4 重映射」，
      说明枚举跨 host 不通用。这里沿用最广泛的写法，属待实测项。 */
   var MODE = {
-    car:  { amapT: '0', amapWeb: 'car',  baidu: 'driving' },
-    bus:  { amapT: '1', amapWeb: 'bus',  baidu: 'transit' },
-    walk: { amapT: '2', amapWeb: 'walk', baidu: 'walking' },
-    ride: { amapT: '3', amapWeb: 'ride', baidu: null },
+    car:  { amapT: '0', amapWeb: 'car',  baidu: 'driving',  apple: 'driving' },
+    bus:  { amapT: '1', amapWeb: 'bus',  baidu: 'transit',  apple: 'transit' },
+    walk: { amapT: '2', amapWeb: 'walk', baidu: 'walking',  apple: 'walking' },
+    ride: { amapT: '3', amapWeb: 'ride', baidu: null,       apple: 'cycling' },
   };
 
   /* GCJ-02 → BD-09。百度官方 SDK 是在客户端先把途经点转成 BD-09 再拼 JSON，
@@ -183,6 +183,39 @@
     return u;
   }
 
+  /* ---------------- Apple 地图 ---------------- */
+
+  /** [官方文档原文] https://maps.apple.com/directions
+   *  三家里唯一一个途经点【接受纯地名】的——官方原文：waypoint 的取值是
+   *  "Specify an address, coordinate, or a place name"，且
+   *  "You can specify multiple waypoints by repeating the waypoint parameter"
+   *  （重复参数，不是竖线或逗号分隔）。
+   *  因此它是零 key 情况下唯一能做真·多途经点的通道。
+   *  坐标顺序是【纬度,经度】（对照官方示例 waypoint=37.795442,-122.393624）。
+   *  统一 URL 方案需 iOS 18.4+；省略 source 则以「当前位置」为起点。
+   *  ⚠️ 未验证：中国大陆下 Apple 地图（用高德数据）对中文地名的解析质量、
+   *     坐标基准是 GCJ-02 还是 WGS-84、waypoint 数量上限（官方未声明）、
+   *     以及 iOS 18.4 以下的降级行为。 */
+  function applePt(p, city) {
+    if (hasCoord(p)) return p.lat + ',' + p.lon;      // 纬度在前
+    var n = p.name;
+    if (city && n.indexOf(city) < 0) n = n + ' ' + city;  // 补城市，帮它消歧
+    return E(n);
+  }
+
+  function appleDirections(seg, opt, startDelay) {
+    var m = MODE[opt.mode] || MODE.car;
+    var from = seg[0], to = seg[seg.length - 1], vias = seg.slice(1, -1);
+    var city = (opt.city || '').trim();
+    var u = 'https://maps.apple.com/directions?';
+    if (!opt.originIsMe) u += 'source=' + applePt(from, city) + '&';
+    u += 'destination=' + applePt(to, city);
+    vias.forEach(function (v) { u += '&waypoint=' + applePt(v, city); });   // 重复参数
+    u += '&mode=' + (m.apple || 'driving');
+    if (startDelay != null) u += '&start=' + startDelay;
+    return u;
+  }
+
   /* ---------------- Android intent 包装 ---------------- */
 
   /** Chrome 25+ 禁止 location.href='xxx://'，网页里唤起 App 必须用 intent 语法。 */
@@ -193,6 +226,22 @@
   }
 
   /* ---------------- 对外主函数 ---------------- */
+
+  /** Apple 地图只在 iOS 与桌面上有意义（Android 打开 maps.apple.com 只是个网页）。 */
+  function pushApple(plans, pts, opt, os) {
+    if (os === 'android') return;
+    var links = [
+      { kind: 'app', label: '打开 Apple 地图', note: '[官方文档] 途经点接受纯地名',
+        url: appleDirections(pts, opt, null) },
+      { kind: 'app-alt', label: '打开并自动开始导航', note: '[未实测] start=3 延迟3秒自动起航',
+        url: appleDirections(pts, opt, 3) },
+    ];
+    plans.push({
+      app: 'apple', title: 'Apple 地图',
+      note: '需 iOS 18.4+。国内用的是高德数据。三家里唯一途经点不要坐标的',
+      legs: [{ title: '', from: pts[0], to: pts[pts.length - 1], vias: pts.slice(1, -1), links: links }],
+    });
+  }
 
   /**
    * @param {Array}  stops  [{name, lon?, lat?}]，按经过顺序
@@ -260,6 +309,7 @@
           }),
         });
       }
+      pushApple(plans, pts, opt, os);
       return { mode: 'route', coords: true, plans: plans };
     }
 
@@ -284,12 +334,15 @@
         from: pts[i], to: pts[i + 1], vias: [], links: links2,
       });
     }
+    var segPlans = [{ app: 'mixed', title: '分段导航（高德/百度）', note: '每到一站回来点下一段', legs: legs }];
+    // Apple 地图的途经点接受纯地名 → 无坐标时它仍能给出一条完整多点路线
+    pushApple(segPlans, pts, opt, os);
     return {
       mode: 'segment', coords: false,
-      reason: '未拿到坐标，途经点无法传递，已降级为逐段导航',
-      plans: [{ app: 'mixed', title: '分段导航', note: '每到一站回来点下一段', legs: legs }],
+      reason: '高德/百度的途经点要经纬度，没有坐标只能逐段走；Apple 地图接受纯地名，仍可一条链接走完',
+      plans: segPlans,
     };
   }
 
-  return { build: build, chunkRoute: chunkRoute, VIA_MAX: VIA_MAX, _amapWeb: amapWeb, _amapScheme: amapScheme, _baiduNavi: baiduNavi };
+  return { build: build, chunkRoute: chunkRoute, _apple: appleDirections, VIA_MAX: VIA_MAX, _amapWeb: amapWeb, _amapScheme: amapScheme, _baiduNavi: baiduNavi };
 });

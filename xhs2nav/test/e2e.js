@@ -72,6 +72,25 @@ const path = require('path');
   await page.waitForTimeout(200);
   await page.screenshot({ path: 'test/shot-out.png' });
 
+  // --- 6. iOS UA：应出现 Apple 地图，且无坐标时也给完整多点路线 ---
+  const ios = await browser.newContext({
+    viewport: { width: 393, height: 852 },
+    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.4 Mobile/15E148 Safari/604.1',
+  });
+  const ip = await ios.newPage();
+  ip.on('pageerror', e => errs.push('IOS PAGEERROR: ' + e.message));
+  await ip.goto('file://' + path.resolve('index.html'));
+  await ip.click('#btnDemo'); await ip.click('#btnParse'); await ip.waitForTimeout(200);
+  await ip.fill('#city', '深圳');
+  await ip.click('#btnBuild'); await ip.waitForTimeout(250);
+  console.log('\n[iOS 无坐标] 环境:', await ip.textContent('#env'));
+  console.log('[iOS 无坐标] plans:', JSON.stringify(await ip.$$eval('.plan .t', e => e.map(x => x.textContent))));
+  const appleLinks = await ip.$$eval('.leg .lk a', as => as.map(a => a.getAttribute('href')).filter(h => h.includes('maps.apple.com')));
+  appleLinks.forEach(h => console.log('  ' + decodeURIComponent(h)));
+  console.log('  waypoint 个数:', (appleLinks[0].match(/&waypoint=/g) || []).length);
+  await ip.screenshot({ path: 'test/shot-ios.png', fullPage: false });
+  await ios.close();
+
   console.log('\n=== JS 错误 ===');
   console.log(errs.length ? errs.join('\n') : '无');
   await browser.close();
