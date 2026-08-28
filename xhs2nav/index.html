@@ -3,123 +3,172 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="color-scheme" content="dark">
-<title>照着走 · 截图转多段导航</title>
-<style>/* 照着走 · 样式（沿用「走着」设计 token） */
+<meta name="color-scheme" content="light dark">
+<title>路书 · 行程截图一键导航</title>
+<style>/* ============================================================
+ * 路书 · 独立视觉系统
+ * 旅行纸感：暖纸底 / 路牌绿主色 / 图钉红标途经点
+ * 跟随系统深浅色；移动优先，max-width 460 居中
+ * ============================================================ */
 :root{
-  --bg:#0A0F1C; --panel:#0D1424; --card:rgba(255,255,255,.03);
-  --cyan:#00F0FF; --mag:#FF2E88; --green:#2EE86C; --amber:#FFB53D;
-  --t1:#D8E6F0; --t2:#9FB6C9; --t3:#5E7186; --t4:#3A4A5C;
-  --line:rgba(0,240,255,.18);
+  --bg:#F5F2EC; --card:#FFFFFF; --card2:#FBFAF7;
+  --ink:#20262B; --sub:#5C6871; --faint:#96A0A8; --hair:#E7E2D8;
+  --go:#0E7B52; --go-soft:#E3F1EA; --go-ink:#0A5C3D;
+  --pin:#D64533; --pin-soft:#FBEAE7;
+  --warn:#9A6A00; --warn-soft:#FBF3DF;
+  --ok:#0E7B52; --shadow:0 1px 3px rgba(32,38,43,.06),0 4px 16px rgba(32,38,43,.05);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#15181B; --card:#1F2429; --card2:#242A30;
+    --ink:#E9EAE6; --sub:#A6AEB4; --faint:#6E777E; --hair:#31383E;
+    --go:#3FAE7F; --go-soft:#1B3229; --go-ink:#7BD3AC;
+    --pin:#E8705F; --pin-soft:#3A2521;
+    --warn:#D9A94A; --warn-soft:#332B1A;
+    --ok:#3FAE7F; --shadow:0 1px 3px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.25);
+  }
 }
 *{box-sizing:border-box}
-html,body{margin:0;padding:0;background:#05070D;color:var(--t1);
-  font-family:"PingFang SC","Noto Sans SC","Microsoft YaHei",system-ui,-apple-system,sans-serif;
-  font-size:14px;line-height:1.55;-webkit-text-size-adjust:100%}
-.mono{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace}
-#app{max-width:520px;margin:0 auto;background:var(--bg);min-height:100vh;
-  padding-bottom:calc(32px + env(safe-area-inset-bottom))}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
+  font-family:system-ui,-apple-system,"PingFang SC","Noto Sans SC","Microsoft YaHei",sans-serif;
+  font-size:15px;line-height:1.6;-webkit-text-size-adjust:100%}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.92em}
+#app{max-width:460px;margin:0 auto;min-height:100vh;
+  padding:0 14px calc(96px + env(safe-area-inset-bottom))}
 
-/* 顶栏 */
+/* ---- 顶栏 ---- */
 header{position:sticky;top:0;z-index:20;background:var(--bg);
-  border-bottom:1px solid var(--line);padding:12px 16px;display:flex;align-items:center;gap:10px}
-.wm{font-size:19px;font-weight:900;color:var(--cyan);text-shadow:0 0 12px rgba(0,240,255,.5);letter-spacing:.5px}
-.sub{font-size:11px;color:var(--t3);flex:1}
-.env{font-size:10px;padding:3px 7px;border:1px solid var(--t4);color:var(--t2);border-radius:2px;white-space:nowrap}
-.env.warn{border-color:var(--mag);color:var(--mag);background:rgba(255,46,136,.08)}
+  display:flex;align-items:baseline;gap:10px;padding:16px 2px 10px}
+.wm{font-size:22px;font-weight:800;letter-spacing:2px}
+.wm::after{content:"";display:inline-block;width:8px;height:8px;margin-left:7px;
+  border-radius:50%;background:var(--pin);vertical-align:2px}
+.sub{font-size:12px;color:var(--sub);flex:1}
+.env{font-size:11px;padding:2px 8px;border-radius:99px;background:var(--card);
+  color:var(--sub);border:1px solid var(--hair);white-space:nowrap}
+.env.warn{background:var(--pin-soft);color:var(--pin);border-color:transparent}
 
-section{padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.05)}
-h2{font-size:12px;font-weight:700;color:var(--t2);margin:0 0 10px;letter-spacing:1px;
-  display:flex;align-items:center;gap:8px}
-h2 .n{font-size:10px;color:var(--bg);background:var(--cyan);width:16px;height:16px;
-  display:inline-flex;align-items:center;justify-content:center;border-radius:2px;font-weight:900}
-
-/* 微信横幅 */
-.wxbar{display:none;margin:0;padding:12px 16px;background:rgba(255,46,136,.1);
-  border-bottom:1px solid var(--mag);color:var(--mag);font-size:12px;line-height:1.6}
+/* ---- 微信提示 ---- */
+.wxbar{display:none;margin:0 0 12px;padding:12px 14px;border-radius:14px;
+  background:var(--pin-soft);color:var(--pin);font-size:13px;line-height:1.6}
 .wxbar.on{display:block}
 
-/* 输入 */
-.tabs{display:flex;gap:0;margin-bottom:10px;border:1px solid var(--line);border-radius:2px;overflow:hidden}
-.tabs button{flex:1;min-height:40px;background:transparent;border:none;color:var(--t2);
-  font-size:13px;font-family:inherit;cursor:pointer;padding:0}
-.tabs button.on{background:rgba(0,240,255,.12);color:var(--cyan);font-weight:700}
-textarea{width:100%;min-height:150px;background:var(--panel);border:1px solid var(--line);
-  color:var(--t1);border-radius:2px;padding:10px;font-family:inherit;font-size:13px;resize:vertical}
-textarea:focus,input:focus,select:focus{outline:none;border-color:var(--cyan);
-  box-shadow:0 0 0 1px rgba(0,240,255,.3)}
-input,select{width:100%;min-height:40px;background:var(--panel);border:1px solid var(--line);
-  color:var(--t1);border-radius:2px;padding:0 10px;font-family:inherit;font-size:13px}
-input::placeholder,textarea::placeholder{color:var(--t4)}
-label{display:block;font-size:11px;color:var(--t3);margin:10px 0 4px}
-.row{display:flex;gap:8px}.row>*{flex:1;min-width:0}
+/* ---- 卡片 ---- */
+section{background:var(--card);border-radius:16px;box-shadow:var(--shadow);
+  padding:16px;margin-bottom:14px}
+h2{font-size:13px;font-weight:700;color:var(--sub);margin:0 0 12px;letter-spacing:2px}
+h2 .cnt{font-weight:400;letter-spacing:0;color:var(--faint);margin-left:6px}
 
-button.btn{min-height:44px;padding:0 16px;border-radius:2px;font-family:inherit;font-size:14px;
-  font-weight:700;cursor:pointer;border:1px solid var(--cyan);background:var(--cyan);color:#05070D;
-  width:100%;margin-top:10px}
-button.btn.ghost{background:transparent;color:var(--cyan)}
-button.btn.mag{border-color:var(--mag);color:var(--mag);background:transparent}
+/* ---- 输入 ---- */
+.tabs{display:flex;background:var(--card2);border-radius:11px;padding:3px;margin-bottom:12px}
+.tabs button{flex:1;min-height:38px;border:none;border-radius:8px;background:transparent;
+  color:var(--sub);font-size:14px;font-family:inherit;cursor:pointer}
+.tabs button.on{background:var(--card);color:var(--ink);font-weight:600;box-shadow:var(--shadow)}
+textarea{width:100%;min-height:150px;background:var(--card2);border:1px solid var(--hair);
+  color:var(--ink);border-radius:12px;padding:12px;font-family:inherit;font-size:14px;resize:vertical}
+input,select{width:100%;min-height:42px;background:var(--card2);border:1px solid var(--hair);
+  color:var(--ink);border-radius:10px;padding:0 12px;font-family:inherit;font-size:14px}
+textarea:focus,input:focus,select:focus{outline:none;border-color:var(--go);
+  box-shadow:0 0 0 3px var(--go-soft)}
+input::placeholder,textarea::placeholder{color:var(--faint)}
+label{display:block;font-size:12px;color:var(--sub);margin:12px 0 5px}
+.row{display:flex;gap:10px}.row>*{flex:1;min-width:0}
+.chk{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--sub);margin:10px 0 0}
+.chk input{width:auto;min-height:0}
+
+button.btn{min-height:44px;padding:0 18px;border-radius:11px;font-family:inherit;
+  font-size:15px;font-weight:700;cursor:pointer;width:100%;margin-top:12px;
+  border:none;background:var(--go);color:#fff}
+button.btn.ghost{background:var(--go-soft);color:var(--go-ink)}
+button.btn.plain{background:var(--card2);color:var(--sub);border:1px solid var(--hair);font-weight:500}
 button.btn:disabled{opacity:.4;cursor:not-allowed}
-.filebtn{display:block;text-align:center;min-height:44px;line-height:44px;border:1px dashed var(--line);
-  border-radius:2px;color:var(--cyan);cursor:pointer;font-size:14px}
-.thumbs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-.thumbs img{width:56px;height:56px;object-fit:cover;border:1px solid var(--line);border-radius:2px}
+.filebtn{display:block;text-align:center;min-height:96px;line-height:96px;
+  border:1.5px dashed var(--hair);border-radius:12px;color:var(--go-ink);
+  background:var(--card2);cursor:pointer;font-size:15px}
+.thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.thumbs img{width:60px;height:60px;object-fit:cover;border-radius:10px}
 
-/* 地点列表 */
+/* ---- 路线（站点列表） ---- */
 .day{margin-bottom:14px}
-.daylabel{font-size:11px;color:var(--mag);font-weight:700;margin-bottom:6px;letter-spacing:1px}
-.stop{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid rgba(255,255,255,.06);
-  border-radius:2px;padding:8px;margin-bottom:6px}
-.stop.low{border-left:2px solid var(--amber)}
-.stop.ok{border-left:2px solid var(--green)}
-.stop.bad{border-left:2px solid var(--mag)}
-.stop .idx{font-size:10px;color:var(--t3);width:18px;text-align:center;flex:none}
+.daylabel{font-size:12px;font-weight:700;color:var(--go-ink);margin-bottom:8px;letter-spacing:1px}
+.stop{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--hair)}
+.day .stop:last-child{border-bottom:none}
+.stop .idx{width:26px;height:26px;flex:none;border-radius:50%;background:var(--card2);
+  border:1.5px solid var(--hair);color:var(--sub);font-size:12px;font-weight:700;
+  display:flex;align-items:center;justify-content:center}
+.stop.ok .idx{background:var(--go-soft);border-color:var(--go);color:var(--go-ink)}
+.stop.low .idx{background:var(--warn-soft);border-color:var(--warn);color:var(--warn)}
+.stop.bad .idx{background:var(--pin-soft);border-color:var(--pin);color:var(--pin)}
 .stop .body{flex:1;min-width:0}
-.stop .nm{width:100%;background:transparent;border:none;color:var(--t1);font-size:14px;
-  padding:2px 0;min-height:24px}
-.stop .meta{font-size:10px;color:var(--t3);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.stop .meta.err{color:var(--mag)}
-.stop .meta.hit{color:var(--green)}
-.stop .ops{display:flex;flex-direction:column;gap:2px;flex:none}
-.stop .ops button{width:30px;height:22px;background:transparent;border:1px solid rgba(255,255,255,.1);
-  color:var(--t2);border-radius:2px;cursor:pointer;font-size:11px;line-height:1;padding:0}
-.stop .ops button:active{background:rgba(0,240,255,.15)}
-.stop .del{width:30px;height:46px;background:transparent;border:1px solid rgba(255,46,136,.3);
-  color:var(--mag);border-radius:2px;cursor:pointer;flex:none;font-size:14px}
+.stop .nm{width:100%;background:transparent;border:none;color:var(--ink);
+  font-size:15px;font-weight:500;padding:0;min-height:24px;border-radius:0}
+.stop .nm:focus{box-shadow:none;border-bottom:1.5px solid var(--go)}
+.stop .meta{font-size:11px;color:var(--faint);margin-top:1px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stop .meta.err{color:var(--pin)}
+.stop .meta.hit{color:var(--ok)}
+.stop .ops{display:flex;gap:4px;flex:none}
+.stop .ops button,.stop .del{width:30px;height:30px;border-radius:8px;background:var(--card2);
+  border:1px solid var(--hair);color:var(--sub);cursor:pointer;font-size:12px;line-height:1;padding:0}
+.stop .del{color:var(--pin)}
+.stop .ops button:active,.stop .del:active{background:var(--hair)}
 
-/* 输出 */
-.plan{border:1px solid var(--line);border-radius:2px;margin-bottom:12px;overflow:hidden}
-.plan>.hd{background:rgba(0,240,255,.07);padding:8px 10px}
-.plan>.hd .t{font-size:13px;font-weight:700;color:var(--cyan)}
-.plan>.hd .n{font-size:10px;color:var(--t2);margin-top:2px;line-height:1.5}
-.leg{padding:9px 10px;border-top:1px solid rgba(255,255,255,.06)}
-.leg .path{font-size:11px;color:var(--t2);margin-bottom:7px;word-break:break-all}
-.leg .path b{color:var(--t1);font-weight:500}
-.leg .path .via{color:var(--mag)}
-.lk{display:flex;align-items:center;gap:8px;margin-bottom:5px}
-.lk a{flex:1;display:block;min-height:38px;line-height:38px;text-align:center;
-  background:rgba(0,240,255,.1);border:1px solid var(--cyan);color:var(--cyan);
-  text-decoration:none;border-radius:2px;font-size:13px;font-weight:700}
-.lk a.alt{background:transparent;border-color:rgba(255,255,255,.15);color:var(--t2);font-weight:400}
-.lk .cp{width:44px;height:38px;flex:none;background:transparent;border:1px solid rgba(255,255,255,.15);
-  color:var(--t2);border-radius:2px;cursor:pointer;font-size:11px}
-.lk .ev{font-size:9px;color:var(--t3);white-space:nowrap;flex:none;max-width:96px;overflow:hidden;text-overflow:ellipsis}
+/* 定位内联行 */
+.georow{margin-top:14px;padding-top:14px;border-top:1px dashed var(--hair)}
 
-/* 提示 */
-.note{font-size:11px;color:var(--t3);line-height:1.6;margin-top:8px}
-.note.warn{color:var(--amber)}
-.note.err{color:var(--mag)}
-.hint{background:rgba(255,181,61,.08);border:1px solid rgba(255,181,61,.3);
-  padding:8px 10px;border-radius:2px;font-size:11px;color:var(--amber);line-height:1.6;margin-top:8px}
-details{margin-top:8px}
-summary{cursor:pointer;font-size:12px;color:var(--t2);min-height:32px;line-height:32px}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:60px;z-index:99;
-  background:rgba(13,20,36,.96);border:1px solid var(--cyan);color:var(--cyan);
-  padding:9px 16px;border-radius:2px;font-size:13px;opacity:0;transition:opacity .2s;
-  pointer-events:none;max-width:88%;text-align:center}
+/* ---- 结果 ---- */
+.plan{border:1px solid var(--hair);border-radius:14px;margin-bottom:12px;overflow:hidden;background:var(--card)}
+.plan>.hd{padding:11px 14px;background:var(--card2);border-bottom:1px solid var(--hair)}
+.plan>.hd .t{font-size:14px;font-weight:700}
+.plan>.hd .n{font-size:11px;color:var(--sub);margin-top:2px;line-height:1.5}
+.leg{padding:11px 14px}
+.leg+.leg{border-top:1px solid var(--hair)}
+.leg .path{font-size:12px;color:var(--sub);margin-bottom:9px;word-break:break-all;line-height:1.7}
+.leg .path b{color:var(--ink);font-weight:600}
+.leg .path .via{color:var(--pin);font-weight:500}
+.lk{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.lk:last-child{margin-bottom:0}
+.lk a{flex:1;display:block;min-height:40px;line-height:40px;text-align:center;
+  background:var(--go);color:#fff;text-decoration:none;border-radius:10px;font-size:14px;font-weight:700}
+.lk a.alt{background:var(--go-soft);color:var(--go-ink);font-weight:500}
+.lk .cp{width:46px;height:40px;flex:none;background:var(--card2);border:1px solid var(--hair);
+  color:var(--sub);border-radius:10px;cursor:pointer;font-size:12px}
+.lk .ev{font-size:10px;color:var(--faint);white-space:nowrap;flex:none;
+  max-width:92px;overflow:hidden;text-overflow:ellipsis}
+
+/* ---- 提示 ---- */
+.note{font-size:12px;color:var(--sub);line-height:1.7;margin-top:8px}
+.note.warn{color:var(--warn)}
+.note.err{color:var(--pin)}
+.hint{background:var(--warn-soft);border-radius:10px;padding:10px 12px;
+  font-size:12px;color:var(--warn);line-height:1.7;margin-top:10px}
+details{margin-top:4px}
+details+details{border-top:1px solid var(--hair)}
+summary{cursor:pointer;font-size:14px;color:var(--ink);min-height:42px;line-height:42px;
+  list-style:none;display:flex;align-items:center}
+summary::after{content:"›";margin-left:auto;color:var(--faint);transform:rotate(90deg);transition:transform .15s}
+details[open] summary::after{transform:rotate(-90deg)}
+details>*:not(summary){margin-bottom:12px}
+
+/* ---- 底部出发栏 ---- */
+.gobar{position:fixed;left:0;right:0;bottom:0;z-index:30;
+  padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+  background:linear-gradient(transparent,var(--bg) 30%)}
+.gobar .in{max-width:460px;margin:0 auto;display:flex;align-items:center;gap:12px;
+  background:var(--card);border-radius:16px;box-shadow:var(--shadow);padding:10px 12px 10px 16px}
+.gobar .cnt{font-size:12px;color:var(--sub);flex:1;line-height:1.4}
+.gobar .cnt b{color:var(--ink);font-size:14px}
+.gobar button{min-height:46px;padding:0 26px;border:none;border-radius:12px;
+  background:var(--go);color:#fff;font-family:inherit;font-size:16px;font-weight:800;
+  letter-spacing:2px;cursor:pointer;flex:none}
+.gobar button:disabled{opacity:.4;cursor:not-allowed}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);
+  bottom:calc(88px + env(safe-area-inset-bottom));z-index:99;
+  background:var(--ink);color:var(--bg);padding:9px 18px;border-radius:99px;
+  font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:86%;text-align:center}
 .toast.on{opacity:1}
-.spin{display:inline-block;width:11px;height:11px;border:2px solid rgba(0,240,255,.25);
-  border-top-color:var(--cyan);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-1px}
+.spin{display:inline-block;width:11px;height:11px;border:2px solid var(--go-soft);
+  border-top-color:var(--go);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-1px}
 @keyframes sp{to{transform:rotate(360deg)}}
 </style>
 </head>
@@ -127,8 +176,8 @@ summary{cursor:pointer;font-size:12px;color:var(--t2);min-height:32px;line-heigh
 <div id="app">
 
 <header>
-  <span class="wm">照着走</span>
-  <span class="sub">小红书行程 → 地图多段导航</span>
+  <span class="wm">路书</span>
+  <span class="sub">行程截图 → 一键多段导航</span>
   <span class="env" id="env"></span>
 </header>
 
@@ -137,8 +186,9 @@ summary{cursor:pointer;font-size:12px;color:var(--t2);min-height:32px;line-heigh
   请点右上角 <b>···</b> → <b>在浏览器中打开</b>，再回到这一步。
 </div>
 
+<!-- ① 放行程 -->
 <section>
-  <h2><span class="n">1</span>放进行程</h2>
+  <h2>放行程</h2>
   <div class="tabs">
     <button id="tabText">粘贴文案</button>
     <button id="tabImg">选截图</button>
@@ -147,7 +197,7 @@ summary{cursor:pointer;font-size:12px;color:var(--t2);min-height:32px;line-heigh
   <div id="paneText">
     <textarea id="text" placeholder="把小红书笔记的文案粘贴进来&#10;&#10;支持 Day1/第一天 分天、1️⃣ 序号、09:00 时间线、A→B→C 箭头串联"></textarea>
     <button class="btn" id="btnParse">解析文案</button>
-    <button class="btn ghost" id="btnDemo">填入示例看看效果</button>
+    <button class="btn plain" id="btnDemo">填入示例看看效果</button>
     <div class="note">纯本地解析，不联网，不上传。</div>
   </div>
 
@@ -157,46 +207,42 @@ summary{cursor:pointer;font-size:12px;color:var(--t2);min-height:32px;line-heigh
     <div class="thumbs" id="thumbs"></div>
     <button class="btn" id="btnExtract">识别截图</button>
     <div id="visionStatus"></div>
-    <div class="note">图片会压到长边 1600px 后上传给你在设置里配的模型。要先填 endpoint / 模型 / Key。</div>
+    <div class="note">图片会压到长边 1280px 后上传给你在设置里配的模型。要先填 endpoint / 模型 / Key。</div>
   </div>
 </section>
 
+<!-- ② 核路线 -->
 <section>
-  <h2><span class="n">2</span>核对地点 <span class="sub mono" id="stopCount"></span></h2>
+  <h2>核路线 <span class="cnt" id="stopCount"></span></h2>
   <div id="stops"></div>
   <div class="row">
     <button class="btn ghost" id="btnAdd">＋ 手动添加</button>
-    <button class="btn mag" id="btnClear">清空</button>
+    <button class="btn plain" id="btnClear">清空</button>
   </div>
-  <div class="note">上下箭头调顺序，点名字可直接改。<span style="color:var(--amber)">橙边</span>=拿不准是不是地点，<span style="color:var(--green)">绿边</span>=已拿到坐标。</div>
+  <div class="note">点名字可直接改，↑↓ 调顺序。绿圈 = 已拿到坐标。</div>
+
+  <div class="georow">
+    <div class="row">
+      <div><label>城市（消歧用）</label><input id="city" placeholder="深圳"></div>
+      <div><label>出行方式</label>
+        <select id="mode"><option value="car">驾车</option><option value="bus">公交</option>
+          <option value="walk">步行</option><option value="ride">骑行</option></select></div>
+    </div>
+    <button class="btn ghost" id="btnGeo">解析坐标（可选）</button>
+    <div id="geoStatus"></div>
+    <div class="note">
+      不做这步<b>高德/百度</b>只能逐段导航——它们的途经点参数要经纬度，只给名字传不了。
+      <b>Apple 地图例外</b>：途经点接受纯地名，iOS 上不填 Key 也能一条链接走完。
+      解析坐标需要在设置里填地图 Key。
+    </div>
+    <label class="chk"><input type="checkbox" id="originIsMe"> 用「我的位置」当起点（第一个地点变成途经点）</label>
+  </div>
 </section>
 
-<section>
-  <h2><span class="n">3</span>定位（可选，但决定能否带途经点）</h2>
-  <div class="row">
-    <div><label>城市（消歧用）</label><input id="city" placeholder="深圳"></div>
-    <div><label>出行方式</label>
-      <select id="mode"><option value="car">驾车</option><option value="bus">公交</option>
-        <option value="walk">步行</option><option value="ride">骑行</option></select></div>
-  </div>
-  <button class="btn ghost" id="btnGeo">解析坐标</button>
-  <div id="geoStatus"></div>
-  <div class="note">
-    不做这步<b>高德/百度</b>只能逐段导航——它们的 <span class="mono">vialons/vialats</span> 与
-    <span class="mono">viaPoints</span> 都要求经纬度。<br>
-    <b style="color:var(--green)">例外：Apple 地图的途经点接受纯地名</b>，所以 iOS 上不填 Key 也能一条链接走完全程。
-  </div>
-</section>
+<!-- ③ 出发（结果） -->
+<div id="out"></div>
 
-<section>
-  <h2><span class="n">4</span>生成链接</h2>
-  <label style="display:flex;align-items:center;gap:8px;margin:0 0 8px">
-    <input type="checkbox" id="originIsMe" style="width:auto;min-height:0"> 用「我的位置」当起点（第一个地点变成途经点）
-  </label>
-  <button class="btn" id="btnBuild">生成导航链接</button>
-  <div id="out"></div>
-</section>
-
+<!-- 设置 -->
 <section>
   <h2>设置</h2>
   <details>
@@ -213,7 +259,7 @@ summary{cursor:pointer;font-size:12px;color:var(--t2);min-height:32px;line-heigh
     <label>模型名 / 接入点 ID</label><input id="model" placeholder="qwen-vl-max 或 ep-xxxxx">
     <label>API Key</label><input id="apiKey" type="password" placeholder="sk-...">
     <div class="hint">
-      千问和豆包的 endpoint 与模型名我<b>没能一手核对</b>（本机访问不了 help.aliyun.com / volcengine.com），
+      千问和豆包的 endpoint 与模型名<b>没能一手核对</b>（构建环境访问不了 help.aliyun.com / volcengine.com），
       按公开检索填的默认值，以官方控制台为准，填错了在这里改即可。
       豆包的 model 通常是控制台<b>接入点 ID（ep- 开头）</b>而不是模型名。
     </div>
@@ -238,9 +284,7 @@ summary{cursor:pointer;font-size:12px;color:var(--t2);min-height:32px;line-heigh
 
   <details>
     <summary>高德途经点上限</summary>
-    <label style="display:flex;align-items:center;gap:8px">
-      <input type="checkbox" id="amapLoose" style="width:auto;min-height:0"> 放宽到 10 个（默认 3 个）
-    </label>
+    <label class="chk"><input type="checkbox" id="amapLoose"> 放宽到 10 个（默认 3 个）</label>
     <div class="note">
       3 个是两家都保证的安全值（百度官方明文上限，也是高德 App 里手动添加的上限）。
       高德的 URI <b>解析层</b>已确认无上限、无截断（客户端代码里是全量遍历数组），
@@ -249,6 +293,7 @@ summary{cursor:pointer;font-size:12px;color:var(--t2);min-height:32px;line-heigh
   </details>
 </section>
 
+<!-- 能力边界（据实说明） -->
 <section>
   <h2>这个工具能做到什么</h2>
   <div class="note">
@@ -269,6 +314,14 @@ summary{cursor:pointer;font-size:12px;color:var(--t2);min-height:32px;line-heigh
 </section>
 
 </div>
+
+<div class="gobar">
+  <div class="in">
+    <div class="cnt" id="goCnt">还没有地点<br>先在上面放行程</div>
+    <button id="btnBuild" disabled>出发</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script type="text/plain" id="demo">
@@ -285,7 +338,7 @@ Day2️⃣
 
 <script>/* ===== parse.js ===== */
 /* ============================================================
- * 照着走 · 行程文本解析器
+ * 路书 · 行程文本解析器
  * 输入：小红书笔记文案（或任意粘贴的行程文本）
  * 输出：按天分组的有序地点列表
  *
@@ -535,7 +588,7 @@ Day2️⃣
 ;
 /* ===== links.js ===== */
 /* ============================================================
- * 照着走 · 地图链接生成层
+ * 路书 · 地图链接生成层
  *
  * 证据等级（见 xhs2nav/RESEARCH.md）：
  *   [官方]   官方文档明文
@@ -618,11 +671,11 @@ Day2️⃣
     // 官方 from/to 要求「经度,纬度,名称」；只给名字不成立，退化成搜索页
     if (!hasCoord(to)) {
       return 'https://uri.amap.com/search?keyword=' + E(to.name) +
-             '&src=' + E(opt.src || 'zhaozhezou') + '&callnative=1';
+             '&src=' + E(opt.src || 'lushu') + '&callnative=1';
     }
     var u = 'https://uri.amap.com/navigation?from=' + pt(from) + '&to=' + pt(to);
     if (vias.length) u += '&via=' + vias.map(pt).join(opt.viaSep === ';' ? '%3B' : PIPE);
-    u += '&mode=' + m.amapWeb + '&policy=1&coordinate=gaode&callnative=1&src=' + E(opt.src || 'zhaozhezou');
+    u += '&mode=' + m.amapWeb + '&policy=1&coordinate=gaode&callnative=1&src=' + E(opt.src || 'lushu');
     return u;
   }
 
@@ -639,7 +692,7 @@ Day2️⃣
     var m = MODE[opt.mode] || MODE.car;
     var from = seg[0], to = seg[seg.length - 1], vias = seg.slice(1, -1);
     var base = os === 'ios' ? 'iosamap://path?' : 'amapuri://route/plan/?';
-    var q = 'sourceApplication=' + E(opt.src || 'zhaozhezou');
+    var q = 'sourceApplication=' + E(opt.src || 'lushu');
     // 起点三项全空 = 用「我的位置」
     if (hasCoord(from)) q += '&slat=' + from.lat + '&slon=' + from.lon + '&sname=' + E(from.name);
     else if (opt.originIsMe) q += '&slat=&slon=&sname=';
@@ -680,7 +733,7 @@ Day2️⃣
     var u = 'baidumap://map/navi?';
     if (!opt.originIsMe && hasCoord(from)) u += 'origin=' + bdLatLng(from) + '&';
     u += 'location=' + bdLatLng(to) +
-         '&src=' + E(opt.baiduSrc || 'andr.zhaozhezou.app');
+         '&src=' + E(opt.baiduSrc || 'andr.lushu.app');
     if (vias.length) u += '&viaPoints=' + viaPointsParam(vias);
     u += '&mode=driving';                 // SDK 另有 neweng（新能源）；货车走 truck/navigation
     return u;
@@ -699,7 +752,7 @@ Day2️⃣
     }
     var u = 'baidumap://map/direction?origin=' + (opt.originIsMe ? '' : pt(from)) +
             '&destination=' + pt(to) + '&mode=' + bmode + '&target=1' +
-            '&src=' + E(opt.baiduSrc || 'andr.zhaozhezou.app');
+            '&src=' + E(opt.baiduSrc || 'andr.lushu.app');
     if (opt.city) u += '&region=' + E(opt.city);   // region 仅二手来源支持
     if (vias.length && allCoords(vias)) u += '&viaPoints=' + viaPointsParam(vias);
     return u;
@@ -714,7 +767,7 @@ Day2️⃣
     function pt(p) { return hasCoord(p) ? 'name:' + E(p.name) + PIPE + 'latlng:' + bdLatLng(p) : E(p.name); }
     var u = 'https://api.map.baidu.com/direction?origin=' + pt(from) + '&destination=' + pt(to) +
             '&mode=' + bmode + '&coord_type=bd09ll&output=html' +
-            '&src=' + E(opt.baiduSrc || 'webapp.zhaozhezou.app');
+            '&src=' + E(opt.baiduSrc || 'webapp.lushu.app');
     if (opt.city) u += '&region=' + E(opt.city);
     return u;
   }
@@ -886,7 +939,7 @@ Day2️⃣
 ;
 /* ===== net.js ===== */
 /* ============================================================
- * 照着走 · 网络层
+ * 路书 · 网络层
  *
  * 浏览器直连国内大模型/地图服务端 API 大概率被 CORS 拦截（它们是服务端 API，
  * 通常不发 Access-Control-Allow-Origin）。因此所有外部请求都过这一层：
@@ -989,7 +1042,7 @@ Day2️⃣
 ;
 /* ===== vision.js ===== */
 /* ============================================================
- * 照着走 · 截图识别层（可配置多模态模型）
+ * 路书 · 截图识别层（可配置多模态模型）
  *
  * 两种协议方言：
  *   openai    —— 千问(百炼 compatible-mode)、豆包(火山方舟)、以及任何 OpenAI 兼容端点
@@ -1180,7 +1233,7 @@ Day2️⃣
 ;
 /* ===== geocode.js ===== */
 /* ============================================================
- * 照着走 · 地理编码层（地点名 → 坐标）
+ * 路书 · 地理编码层（地点名 → 坐标）
  *
  * 只有拿到坐标才能传途经点。默认百度（用户指定优先），可切高德。
  * 两家 Web 服务 API 都是服务端接口，浏览器直连大概率撞 CORS → 走 ZZNet 的代理开关。
@@ -1345,13 +1398,13 @@ Day2️⃣
 ;
 /* ===== app.js ===== */
 /* ============================================================
- * 照着走 · 主程序
+ * 路书 · 主程序
  * 截图/文案 → 地点列表（可编辑）→ 可选地理编码 → 地图多段导航链接
  * ============================================================ */
 (function () {
   'use strict';
 
-  var LSK = 'zhaozhezou_v1';
+  var LSK = 'lushu_v1';
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var esc = function (s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -1485,6 +1538,9 @@ Day2️⃣
     $('#stopCount').textContent = n ? n + ' 个地点' + (got ? '，' + got + ' 个已定位' : '') : '';
     $('#btnGeo').disabled = !n || !!S.busy;
     $('#btnBuild').disabled = n < 2 || !!S.busy;
+    $('#goCnt').innerHTML = n < 2
+      ? '还没有路线<br>至少要 2 个地点'
+      : '<b>' + n + ' 站</b> · ' + (got === n ? '全部已定位' : (got ? got + ' 站已定位' : '未定位，逐段导航'));
   }
 
   function renderCfg() {
@@ -1628,7 +1684,7 @@ Day2️⃣
     var res = ZZLinks.build(stops, {
       mode: S.mode, os: ENV.os, city: S.city.trim(),
       originIsMe: S.originIsMe, amapLoose: S.amapLoose,
-      src: 'zhaozhezou', baiduSrc: (ENV.ios ? 'ios' : ENV.android ? 'andr' : 'webapp') + '.zhaozhezou.app',
+      src: 'lushu', baiduSrc: (ENV.ios ? 'ios' : ENV.android ? 'andr' : 'webapp') + '.lushu.app',
     });
     renderOut(res);
     $('#out').scrollIntoView({ behavior: 'smooth', block: 'start' });

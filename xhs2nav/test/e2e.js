@@ -49,12 +49,12 @@ const path = require('path');
 
   // --- 5. 注入坐标 → 真·多途经点 ---
   await page.evaluate(() => {
-    const raw = JSON.parse(localStorage.getItem('zhaozhezou_v1'));
+    const raw = JSON.parse(localStorage.getItem('lushu_v1'));
     const C = [[113.9784,22.4936],[113.9166,22.4818],[113.9203,22.4874],[113.9738,22.5389],[113.9835,22.5411]];
     let i = 0;
     raw.days.forEach(d => { d.stops = d.stops.filter(s => s.name); d.stops.forEach(s => { if (C[i]) { s.lon = C[i][0]; s.lat = C[i][1]; s.matched = s.name; } i++; }); });
     raw.city = '深圳';
-    localStorage.setItem('zhaozhezou_v1', JSON.stringify(raw));
+    localStorage.setItem('lushu_v1', JSON.stringify(raw));
   });
   await page.reload();
   await page.waitForTimeout(300);

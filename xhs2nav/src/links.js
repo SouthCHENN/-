@@ -1,5 +1,5 @@
 /* ============================================================
- * 照着走 · 地图链接生成层
+ * 路书 · 地图链接生成层
  *
  * 证据等级（见 xhs2nav/RESEARCH.md）：
  *   [官方]   官方文档明文
@@ -82,11 +82,11 @@
     // 官方 from/to 要求「经度,纬度,名称」；只给名字不成立，退化成搜索页
     if (!hasCoord(to)) {
       return 'https://uri.amap.com/search?keyword=' + E(to.name) +
-             '&src=' + E(opt.src || 'zhaozhezou') + '&callnative=1';
+             '&src=' + E(opt.src || 'lushu') + '&callnative=1';
     }
     var u = 'https://uri.amap.com/navigation?from=' + pt(from) + '&to=' + pt(to);
     if (vias.length) u += '&via=' + vias.map(pt).join(opt.viaSep === ';' ? '%3B' : PIPE);
-    u += '&mode=' + m.amapWeb + '&policy=1&coordinate=gaode&callnative=1&src=' + E(opt.src || 'zhaozhezou');
+    u += '&mode=' + m.amapWeb + '&policy=1&coordinate=gaode&callnative=1&src=' + E(opt.src || 'lushu');
     return u;
   }
 
@@ -103,7 +103,7 @@
     var m = MODE[opt.mode] || MODE.car;
     var from = seg[0], to = seg[seg.length - 1], vias = seg.slice(1, -1);
     var base = os === 'ios' ? 'iosamap://path?' : 'amapuri://route/plan/?';
-    var q = 'sourceApplication=' + E(opt.src || 'zhaozhezou');
+    var q = 'sourceApplication=' + E(opt.src || 'lushu');
     // 起点三项全空 = 用「我的位置」
     if (hasCoord(from)) q += '&slat=' + from.lat + '&slon=' + from.lon + '&sname=' + E(from.name);
     else if (opt.originIsMe) q += '&slat=&slon=&sname=';
@@ -144,7 +144,7 @@
     var u = 'baidumap://map/navi?';
     if (!opt.originIsMe && hasCoord(from)) u += 'origin=' + bdLatLng(from) + '&';
     u += 'location=' + bdLatLng(to) +
-         '&src=' + E(opt.baiduSrc || 'andr.zhaozhezou.app');
+         '&src=' + E(opt.baiduSrc || 'andr.lushu.app');
     if (vias.length) u += '&viaPoints=' + viaPointsParam(vias);
     u += '&mode=driving';                 // SDK 另有 neweng（新能源）；货车走 truck/navigation
     return u;
@@ -163,7 +163,7 @@
     }
     var u = 'baidumap://map/direction?origin=' + (opt.originIsMe ? '' : pt(from)) +
             '&destination=' + pt(to) + '&mode=' + bmode + '&target=1' +
-            '&src=' + E(opt.baiduSrc || 'andr.zhaozhezou.app');
+            '&src=' + E(opt.baiduSrc || 'andr.lushu.app');
     if (opt.city) u += '&region=' + E(opt.city);   // region 仅二手来源支持
     if (vias.length && allCoords(vias)) u += '&viaPoints=' + viaPointsParam(vias);
     return u;
@@ -178,7 +178,7 @@
     function pt(p) { return hasCoord(p) ? 'name:' + E(p.name) + PIPE + 'latlng:' + bdLatLng(p) : E(p.name); }
     var u = 'https://api.map.baidu.com/direction?origin=' + pt(from) + '&destination=' + pt(to) +
             '&mode=' + bmode + '&coord_type=bd09ll&output=html' +
-            '&src=' + E(opt.baiduSrc || 'webapp.zhaozhezou.app');
+            '&src=' + E(opt.baiduSrc || 'webapp.lushu.app');
     if (opt.city) u += '&region=' + E(opt.city);
     return u;
   }

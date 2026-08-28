@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="color-scheme" content="dark">
-<title>照着走 · 截图转多段导航</title>
+<meta name="color-scheme" content="light dark">
+<title>路书 · 行程截图一键导航</title>
 <style>/*__CSS__*/</style>
 </head>
 <body>
 <div id="app">
 
 <header>
-  <span class="wm">照着走</span>
-  <span class="sub">小红书行程 → 地图多段导航</span>
+  <span class="wm">路书</span>
+  <span class="sub">行程截图 → 一键多段导航</span>
   <span class="env" id="env"></span>
 </header>
 
@@ -21,8 +21,9 @@
   请点右上角 <b>···</b> → <b>在浏览器中打开</b>，再回到这一步。
 </div>
 
+<!-- ① 放行程 -->
 <section>
-  <h2><span class="n">1</span>放进行程</h2>
+  <h2>放行程</h2>
   <div class="tabs">
     <button id="tabText">粘贴文案</button>
     <button id="tabImg">选截图</button>
@@ -31,7 +32,7 @@
   <div id="paneText">
     <textarea id="text" placeholder="把小红书笔记的文案粘贴进来&#10;&#10;支持 Day1/第一天 分天、1️⃣ 序号、09:00 时间线、A→B→C 箭头串联"></textarea>
     <button class="btn" id="btnParse">解析文案</button>
-    <button class="btn ghost" id="btnDemo">填入示例看看效果</button>
+    <button class="btn plain" id="btnDemo">填入示例看看效果</button>
     <div class="note">纯本地解析，不联网，不上传。</div>
   </div>
 
@@ -41,46 +42,42 @@
     <div class="thumbs" id="thumbs"></div>
     <button class="btn" id="btnExtract">识别截图</button>
     <div id="visionStatus"></div>
-    <div class="note">图片会压到长边 1600px 后上传给你在设置里配的模型。要先填 endpoint / 模型 / Key。</div>
+    <div class="note">图片会压到长边 1280px 后上传给你在设置里配的模型。要先填 endpoint / 模型 / Key。</div>
   </div>
 </section>
 
+<!-- ② 核路线 -->
 <section>
-  <h2><span class="n">2</span>核对地点 <span class="sub mono" id="stopCount"></span></h2>
+  <h2>核路线 <span class="cnt" id="stopCount"></span></h2>
   <div id="stops"></div>
   <div class="row">
     <button class="btn ghost" id="btnAdd">＋ 手动添加</button>
-    <button class="btn mag" id="btnClear">清空</button>
+    <button class="btn plain" id="btnClear">清空</button>
   </div>
-  <div class="note">上下箭头调顺序，点名字可直接改。<span style="color:var(--amber)">橙边</span>=拿不准是不是地点，<span style="color:var(--green)">绿边</span>=已拿到坐标。</div>
+  <div class="note">点名字可直接改，↑↓ 调顺序。绿圈 = 已拿到坐标。</div>
+
+  <div class="georow">
+    <div class="row">
+      <div><label>城市（消歧用）</label><input id="city" placeholder="深圳"></div>
+      <div><label>出行方式</label>
+        <select id="mode"><option value="car">驾车</option><option value="bus">公交</option>
+          <option value="walk">步行</option><option value="ride">骑行</option></select></div>
+    </div>
+    <button class="btn ghost" id="btnGeo">解析坐标（可选）</button>
+    <div id="geoStatus"></div>
+    <div class="note">
+      不做这步<b>高德/百度</b>只能逐段导航——它们的途经点参数要经纬度，只给名字传不了。
+      <b>Apple 地图例外</b>：途经点接受纯地名，iOS 上不填 Key 也能一条链接走完。
+      解析坐标需要在设置里填地图 Key。
+    </div>
+    <label class="chk"><input type="checkbox" id="originIsMe"> 用「我的位置」当起点（第一个地点变成途经点）</label>
+  </div>
 </section>
 
-<section>
-  <h2><span class="n">3</span>定位（可选，但决定能否带途经点）</h2>
-  <div class="row">
-    <div><label>城市（消歧用）</label><input id="city" placeholder="深圳"></div>
-    <div><label>出行方式</label>
-      <select id="mode"><option value="car">驾车</option><option value="bus">公交</option>
-        <option value="walk">步行</option><option value="ride">骑行</option></select></div>
-  </div>
-  <button class="btn ghost" id="btnGeo">解析坐标</button>
-  <div id="geoStatus"></div>
-  <div class="note">
-    不做这步<b>高德/百度</b>只能逐段导航——它们的 <span class="mono">vialons/vialats</span> 与
-    <span class="mono">viaPoints</span> 都要求经纬度。<br>
-    <b style="color:var(--green)">例外：Apple 地图的途经点接受纯地名</b>，所以 iOS 上不填 Key 也能一条链接走完全程。
-  </div>
-</section>
+<!-- ③ 出发（结果） -->
+<div id="out"></div>
 
-<section>
-  <h2><span class="n">4</span>生成链接</h2>
-  <label style="display:flex;align-items:center;gap:8px;margin:0 0 8px">
-    <input type="checkbox" id="originIsMe" style="width:auto;min-height:0"> 用「我的位置」当起点（第一个地点变成途经点）
-  </label>
-  <button class="btn" id="btnBuild">生成导航链接</button>
-  <div id="out"></div>
-</section>
-
+<!-- 设置 -->
 <section>
   <h2>设置</h2>
   <details>
@@ -97,7 +94,7 @@
     <label>模型名 / 接入点 ID</label><input id="model" placeholder="qwen-vl-max 或 ep-xxxxx">
     <label>API Key</label><input id="apiKey" type="password" placeholder="sk-...">
     <div class="hint">
-      千问和豆包的 endpoint 与模型名我<b>没能一手核对</b>（本机访问不了 help.aliyun.com / volcengine.com），
+      千问和豆包的 endpoint 与模型名<b>没能一手核对</b>（构建环境访问不了 help.aliyun.com / volcengine.com），
       按公开检索填的默认值，以官方控制台为准，填错了在这里改即可。
       豆包的 model 通常是控制台<b>接入点 ID（ep- 开头）</b>而不是模型名。
     </div>
@@ -122,9 +119,7 @@
 
   <details>
     <summary>高德途经点上限</summary>
-    <label style="display:flex;align-items:center;gap:8px">
-      <input type="checkbox" id="amapLoose" style="width:auto;min-height:0"> 放宽到 10 个（默认 3 个）
-    </label>
+    <label class="chk"><input type="checkbox" id="amapLoose"> 放宽到 10 个（默认 3 个）</label>
     <div class="note">
       3 个是两家都保证的安全值（百度官方明文上限，也是高德 App 里手动添加的上限）。
       高德的 URI <b>解析层</b>已确认无上限、无截断（客户端代码里是全量遍历数组），
@@ -133,6 +128,7 @@
   </details>
 </section>
 
+<!-- 能力边界（据实说明） -->
 <section>
   <h2>这个工具能做到什么</h2>
   <div class="note">
@@ -153,6 +149,14 @@
 </section>
 
 </div>
+
+<div class="gobar">
+  <div class="in">
+    <div class="cnt" id="goCnt">还没有地点<br>先在上面放行程</div>
+    <button id="btnBuild" disabled>出发</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script type="text/plain" id="demo">

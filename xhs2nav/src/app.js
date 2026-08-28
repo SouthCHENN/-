@@ -1,11 +1,11 @@
 /* ============================================================
- * 照着走 · 主程序
+ * 路书 · 主程序
  * 截图/文案 → 地点列表（可编辑）→ 可选地理编码 → 地图多段导航链接
  * ============================================================ */
 (function () {
   'use strict';
 
-  var LSK = 'zhaozhezou_v1';
+  var LSK = 'lushu_v1';
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var esc = function (s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -139,6 +139,9 @@
     $('#stopCount').textContent = n ? n + ' 个地点' + (got ? '，' + got + ' 个已定位' : '') : '';
     $('#btnGeo').disabled = !n || !!S.busy;
     $('#btnBuild').disabled = n < 2 || !!S.busy;
+    $('#goCnt').innerHTML = n < 2
+      ? '还没有路线<br>至少要 2 个地点'
+      : '<b>' + n + ' 站</b> · ' + (got === n ? '全部已定位' : (got ? got + ' 站已定位' : '未定位，逐段导航'));
   }
 
   function renderCfg() {
@@ -282,7 +285,7 @@
     var res = ZZLinks.build(stops, {
       mode: S.mode, os: ENV.os, city: S.city.trim(),
       originIsMe: S.originIsMe, amapLoose: S.amapLoose,
-      src: 'zhaozhezou', baiduSrc: (ENV.ios ? 'ios' : ENV.android ? 'andr' : 'webapp') + '.zhaozhezou.app',
+      src: 'lushu', baiduSrc: (ENV.ios ? 'ios' : ENV.android ? 'andr' : 'webapp') + '.lushu.app',
     });
     renderOut(res);
     $('#out').scrollIntoView({ behavior: 'smooth', block: 'start' });

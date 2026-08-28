@@ -25,7 +25,7 @@ def main():
         parts.append(f'/* ===== {name} ===== */\n' + p.read_text(encoding='utf-8'))
     js = '\n;\n'.join(parts)
 
-    # 内联 JS 里若出现 </script> 会提前终结标签，防御性转义（与 走着 的 inject_addon.py 同策略）
+    # 内联 JS 里若出现 </script> 会提前终结标签，防御性转义
     js = js.replace('</script', '<\\/script')
 
     html = tpl.replace('/*__CSS__*/', css).replace('/*__JS__*/', js)

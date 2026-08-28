@@ -1,5 +1,5 @@
 /* ============================================================
- * 照着走 · 最小转发代理（Cloudflare Workers）
+ * 路书 · 最小转发代理（Cloudflare Workers）
  *
  * 用途：浏览器直连大模型 / 地图的服务端 API 通常被 CORS 拦（它们不发
  * Access-Control-Allow-Origin）。把这个 Worker 部署好，在页面「设置 → 代理」
