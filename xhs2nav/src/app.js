@@ -24,7 +24,7 @@
 
   /* ---------- 状态 ---------- */
   var S = {
-    tab: 'text',
+    tab: 'img',
     days: [],
     city: '',
     mode: 'car',
@@ -140,7 +140,7 @@
     $('#btnBuild').disabled = n < 2 || !!S.busy;
     $('#goCnt').innerHTML = n < 2
       ? '还没有路线<br>至少要 2 个地点'
-      : '<b>' + n + ' 站</b> · ' + (got === n ? '全部已定位' : (got ? got + ' 站已定位' : '未定位，逐段导航'));
+      : '<b>' + n + ' 站</b> · ' + (got === n ? '全部已定位' : (got ? got + ' 站已定位' : '出发时自动定位'));
   }
 
   function renderCfg() {
@@ -168,11 +168,12 @@
       return;
     }
     var head = '';
-    if (res.mode === 'segment') {
-      head = '<div class="hint">' + esc(res.reason) +
-        '。途经点参数（高德 vialons/vialats、百度 viaPoints）都要求经纬度，只给名字传不了。' +
-        '想要一条链接带完整行程，需要在设置里填地图 Key 后点「解析坐标」。</div>';
+    if (res.mode === 'partial') {
+      head = '<div class="hint">这几站没定位到：<b>' + res.failed.map(esc).join('、') + '</b><br>' +
+        '换个更常见的叫法（如「XX店」补上城市/商场名）或删掉它，再点一次出发。' +
+        (res.plans.length ? '<br>Apple 地图不受影响，下面照常可用。' : '') + '</div>';
     }
+    (res.notes || []).forEach(function (n) { head += '<div class="note warn">' + esc(n) + '</div>'; });
     host.innerHTML = head + res.plans.map(function (p) {
       return '<div class="plan"><div class="hd"><div class="t">' + esc(p.title) + '</div>' +
         (p.note ? '<div class="n">' + esc(p.note) + '</div>' : '') + '</div>' +
@@ -243,6 +244,10 @@
     } catch (e) {
       $('#visionStatus').innerHTML = '<span class="note err">' + esc(e.message) + '</span>' +
         (e.detail ? '<details><summary>详细返回</summary><div class="note">' + esc(String(e.detail).slice(0, 500)) + '</div></details>' : '');
+      if (e.kind === 'config') {
+        var d = $('#setVision');
+        if (d) { d.open = true; d.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+      }
     }
     S.busy = ''; renderInput(); renderStops();
   }

@@ -25,8 +25,8 @@
 <section>
   <h2>放行程</h2>
   <div class="tabs">
-    <button id="tabText">粘贴文案</button>
     <button id="tabImg">选截图</button>
+    <button id="tabText">粘贴文案</button>
   </div>
 
   <div id="paneText">
@@ -41,7 +41,7 @@
     <div class="thumbs" id="thumbs"></div>
     <button class="btn" id="btnExtract">识别截图</button>
     <div id="visionStatus"></div>
-    <div class="note">图片会压到长边 1280px 后上传给你在设置里配的模型。要先填 endpoint / 模型 / Key。</div>
+    <div class="note">需要先在下面设置里填「① 识别 Key」（配一次就好）。图片会压到长边 1280px 再上传。</div>
   </div>
 </section>
 
@@ -64,8 +64,8 @@
     </div>
     <label class="chk"><input type="checkbox" id="originIsMe"> 用「我的位置」当起点（第一个地点变成途经点）</label>
     <div class="note">
-      你不需要管坐标：点「出发」时工具自动在背后定位（免 Key 走 OpenStreetMap；
-      在设置里填了地图 Key 会自动改用高德/百度，更准）。定位失败的站也不挡路——自动退成逐段导航。
+      点「出发」时工具自动用「② 地图 Key」给每一站定位，然后生成<b>一条带全部途经点的链接</b>——
+      驾车且途经点 ≤3 时百度可直接进入导航态。哪站没定位到会标红，改个名再出发即可（不会退成分段点击）。
     </div>
   </div>
 </section>
@@ -76,8 +76,8 @@
 <!-- 设置 -->
 <section>
   <h2>设置</h2>
-  <details>
-    <summary>识别模型（图片识别才需要）</summary>
+  <details id="setVision">
+    <summary>① 识别 Key（截图识别用，必填一次）</summary>
     <label>服务商</label>
     <select id="visionPreset">
       <option value="qwen">通义千问 VL（阿里百炼）</option>
@@ -97,11 +97,12 @@
   </details>
 
   <details>
-    <summary>地图 Key（解析坐标才需要）</summary>
+    <summary>② 地图 Key（定位途经点用，必填一次）</summary>
     <label>服务商</label>
     <select id="geoProvider"><option value="baidu">百度地图</option><option value="amap">高德地图</option></select>
     <label>AK / Key</label><input id="geoAk" type="password" placeholder="服务端类型的 Key">
-    <div class="note">百度：lbsyun.baidu.com 创建「服务端」应用并开通地点检索。高德：console.amap.com 创建「Web服务」Key。</div>
+    <div class="note">百度：lbsyun.baidu.com 创建「服务端」应用并开通地点检索。高德：console.amap.com 创建「Web服务」Key。
+    没填时会退而求其次用免费的 OpenStreetMap 定位——能用但成功率和精度都更低，建议填。</div>
   </details>
 
   <details>

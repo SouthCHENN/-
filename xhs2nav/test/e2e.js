@@ -18,6 +18,7 @@ const path = require('path');
   console.log('环境徽章:', await page.textContent('#env'));
 
   // --- 1. 示例 → 解析 ---
+  await page.click('#tabText');
   await page.click('#btnDemo');
   await page.waitForTimeout(300);   // 自动解析（demo 立即触发）
   const names = await page.$$eval('#stops .nm', els => els.map(e => e.value));
@@ -26,15 +27,12 @@ const path = require('path');
   console.log('解析出地点:', JSON.stringify(names));
   console.log('计数:', await page.textContent('#stopCount'));
 
-  // --- 2. 无坐标 → 出发：先静默尝试免 Key 定位（本环境离线，立即失败）→ 应自动降级为分段 ---
+  // --- 2. 无坐标 → 出发：静默定位失败（本环境离线）→ Android 应显示修复引导而非分段链接 ---
   await page.click('#btnBuild');
   await page.waitForTimeout(1500);
-  const planTitles = await page.$$eval('.plan .t', e => e.map(x => x.textContent));
-  const legCount = await page.$$eval('.leg', e => e.length);
-  const firstHref = await page.getAttribute('.leg .lk a', 'href');
-  console.log('\n[无坐标] plans:', JSON.stringify(planTitles), 'legs:', legCount);
-  console.log('[无坐标] 首链接:', firstHref.slice(0, 130));
-  console.log('[无坐标] 有降级提示:', await page.$$eval('.hint', e => e.length) > 0);
+  console.log('\n[无坐标·Android] plans:', JSON.stringify(await page.$$eval('.plan .t', e => e.map(x => x.textContent))));
+  const hintTxt = await page.$$eval('#out .hint', e => e.map(x => x.textContent.slice(0, 60)));
+  console.log('[无坐标·Android] 修复引导:', JSON.stringify(hintTxt));
 
   // --- 3. 上移/删除 ---
   await page.click('#stops .stop:nth-of-type(2) button[data-act="up"]');
@@ -79,7 +77,7 @@ const path = require('path');
   const ip = await ios.newPage();
   ip.on('pageerror', e => errs.push('IOS PAGEERROR: ' + e.message));
   await ip.goto('file://' + path.resolve('index.html'));
-  await ip.click('#btnDemo'); await ip.waitForTimeout(300);
+  await ip.click('#tabText'); await ip.click('#btnDemo'); await ip.waitForTimeout(300);
   await ip.fill('#city', '深圳');
   await ip.click('#btnBuild'); await ip.waitForTimeout(1500);
   console.log('\n[iOS 无坐标] 环境:', await ip.textContent('#env'));

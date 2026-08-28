@@ -244,104 +244,89 @@
   }
 
   /**
+   * 一键整程：一条链接带全部途经点，目标是「点开即导航」。
+   * 分段导航已移除——用户明确表示分段点击没有价值（可自行手输）。
+   *
    * @param {Array}  stops  [{name, lon?, lat?}]，按经过顺序
-   * @param {Object} opt    { mode, os:'android'|'ios'|'other', city, src, baiduSrc,
-   *                          originIsMe, amapLoose, viaSep }
-   * @returns {Object} { mode:'route'|'segment', coords:boolean, plans:[...] }
-   *   plans[].legs[] = { title, from, to, vias, links:[{app,kind,url,label,note}] }
+   * @param {Object} opt    { mode, os, city, src, baiduSrc, originIsMe, amapLoose }
+   * @returns {Object}
+   *   mode:'route'   全部站有坐标 → 整程多途经点链接
+   *   mode:'partial' 有站缺坐标 → failed 列出站名，UI 引导修复；iOS 仍给 Apple 整程
+   *   mode:'none'    站数不足
    */
   function build(stops, opt) {
     opt = opt || {};
     var pts = (stops || []).filter(function (s) { return s && s.name; });
     if (pts.length < 2) return { mode: 'none', coords: false, plans: [], reason: '至少需要 2 个地点' };
 
-    var coords = allCoords(opt.originIsMe ? pts.slice(1) : pts);
     var os = opt.os || 'other';
-    var plans = [];
+    var plans = [], notes = [];
 
-    if (coords) {
-      /* ---- 有坐标：真·多途经点 ---- */
-      var amapMax = opt.amapLoose ? VIA_MAX.amapLoose : VIA_MAX.amap;
-      plans.push({
-        app: 'amap', title: '高德地图',
-        note: '落地是路线规划页，需再点一次「开始导航」。URI 解析层无途经点数量上限，下游是否截断未知',
-        legs: chunkRoute(pts, amapMax).map(function (seg, i, arr) {
-          var webUrl = amapWeb(seg, opt);
-          var links = [];
-          if (os === 'android') {
-            links.push({ kind: 'app', label: '打开高德 App', note: '[高德客户端代码证实]',
-              url: toIntent('amapuri', 'com.autonavi.minimap', amapScheme(seg, opt, 'android'), webUrl) });
-          } else if (os === 'ios') {
-            links.push({ kind: 'app', label: '打开高德 App', note: '[iOS 侧 via 未验证]',
-              url: amapScheme(seg, opt, 'ios') });
-          }
-          links.push({ kind: 'web', label: os === 'other' ? '打开高德' : '网页版（未装 App）',
-            note: seg.length > 3 ? '[未证实] 官方只有 1 个 via 的示例，多 via 分隔符无依据' : '[via 参数真实，文档化程度存疑]',
-            url: webUrl });
-          return {
-            title: arr.length > 1 ? '第 ' + (i + 1) + '/' + arr.length + ' 段' : '',
-            from: seg[0], to: seg[seg.length - 1], vias: seg.slice(1, -1), links: links,
-          };
-        }),
-      });
+    var failed = pts.filter(function (p, i) {
+      return !(opt.originIsMe && i === 0) && !hasCoord(p);
+    }).map(function (p) { return p.name; });
 
-      if ((opt.mode || 'car') === 'car') {
-        plans.push({
-          app: 'baidu', title: '百度地图',
-          note: '带途经点直接进导航态（真·一键）。官方限 3 个途经点；2 个以上未经实测',
-          legs: chunkRoute(pts, VIA_MAX.baidu).map(function (seg, i, arr) {
-            var links = [];
-            var navi = baiduNavi(seg, opt), dir = baiduDirection(seg, opt), web = baiduWeb(seg, opt);
-            if (os === 'android') {
-              links.push({ kind: 'app', label: '直接开导航', note: '[SDK逐字印证] 仅驾车',
-                url: toIntent('bdapp', 'com.baidu.BaiduMap', navi, web) });
-              links.push({ kind: 'app-alt', label: '路线规划页', note: '[途经点未证实] SDK 未拼 viaPoints',
-                url: toIntent('bdapp', 'com.baidu.BaiduMap', dir, web) });
-            } else if (os === 'ios') {
-              links.push({ kind: 'app', label: '直接开导航', note: '[SDK逐字印证] 仅驾车', url: navi });
-              links.push({ kind: 'app-alt', label: '路线规划页', note: '[途经点未证实]', url: dir });
-            }
-            links.push({ kind: 'web', label: '网页版（无途经点）', note: '[二手来源] 网页版途经点能力未证实', url: web });
-            return {
-              title: arr.length > 1 ? '第 ' + (i + 1) + '/' + arr.length + ' 段' : '',
-              from: seg[0], to: seg[seg.length - 1], vias: seg.slice(1, -1), links: links,
-            };
-          }),
-        });
-      }
+    if (failed.length) {
+      // 不降级成分段：让用户修好失败的站再出发。Apple 收纯地名，iOS 整程照常。
       pushApple(plans, pts, opt, os);
-      return { mode: 'route', coords: true, plans: plans };
+      return { mode: 'partial', coords: false, failed: failed, plans: plans };
     }
 
-    /* ---- 无坐标：降级为分段导航，每段 A→B 用地名直传 ---- */
-    var legs = [];
-    for (var i = 0; i < pts.length - 1; i++) {
-      var seg2 = [pts[i], pts[i + 1]];
-      var bweb = baiduWeb(seg2, opt);
-      var links2 = [];
-      if (os === 'android') {
-        links2.push({ kind: 'app', label: '百度地图', note: '[SDK印证] origin/destination 支持纯地名',
-          url: toIntent('bdapp', 'com.baidu.BaiduMap', baiduDirection(seg2, opt), bweb) });
-        links2.push({ kind: 'app-alt', label: '高德地图', note: '[实测] 无坐标时仅凭名称发起',
-          url: toIntent('amapuri', 'com.autonavi.minimap', amapScheme(seg2, opt, 'android'), amapWeb(seg2, opt)) });
-      } else if (os === 'ios') {
-        links2.push({ kind: 'app', label: '百度地图', note: '[SDK印证]', url: baiduDirection(seg2, opt) });
-        links2.push({ kind: 'app-alt', label: '高德地图', note: '[实测]', url: amapScheme(seg2, opt, 'ios') });
-      }
-      links2.push({ kind: 'web', label: '网页版', note: '[官方]', url: bweb });
-      legs.push({
-        title: '第 ' + (i + 1) + '/' + (pts.length - 1) + ' 段',
-        from: pts[i], to: pts[i + 1], vias: [], links: links2,
-      });
+    var vias = pts.slice(1, -1);
+    var mode = opt.mode || 'car';
+    var amapMax = opt.amapLoose ? VIA_MAX.amapLoose : VIA_MAX.amap;
+
+    /* ---- 高德：一条链接带全部途经点（URI 解析层无上限已证实；>3 未实测） ---- */
+    var overAmap = vias.length > amapMax;
+    var amapNote = '落地路线规划页，需再点一次「开始导航」';
+    if (vias.length > 3) amapNote += '。途经点 ' + vias.length + ' 个：解析层无上限已证实，>3 的下游行为未实测';
+    if (overAmap) amapNote += '（已超设置里的上限 ' + amapMax + '，仍全量携带）';
+    var webUrl = amapWeb(pts, opt);
+    var amapLinks = [];
+    if (os === 'android') {
+      amapLinks.push({ kind: 'app', label: '打开高德（含全部途经点）', note: '[高德客户端代码证实]',
+        url: toIntent('amapuri', 'com.autonavi.minimap', amapScheme(pts, opt, 'android'), webUrl) });
+    } else if (os === 'ios') {
+      amapLinks.push({ kind: 'app', label: '打开高德（含全部途经点）', note: '[iOS 侧 via 未验证]',
+        url: amapScheme(pts, opt, 'ios') });
     }
-    var segPlans = [{ app: 'mixed', title: '分段导航（高德/百度）', note: '每到一站回来点下一段', legs: legs }];
-    // Apple 地图的途经点接受纯地名 → 无坐标时它仍能给出一条完整多点路线
-    pushApple(segPlans, pts, opt, os);
-    return {
-      mode: 'segment', coords: false,
-      reason: '高德/百度的途经点要经纬度，没有坐标只能逐段走；Apple 地图接受纯地名，仍可一条链接走完',
-      plans: segPlans,
-    };
+    amapLinks.push({ kind: 'web', label: os === 'other' ? '打开高德' : '网页版（未装 App）',
+      note: vias.length > 1 ? '[未证实] 官方只有 1 个 via 的示例' : '[via 参数真实]', url: webUrl });
+    var amapPlan = { app: 'amap', title: '高德地图', note: amapNote,
+      legs: [{ title: '', from: pts[0], to: pts[pts.length - 1], vias: vias, links: amapLinks }] };
+
+    /* ---- 百度：真·直接进导航态，仅驾车且途经点 ≤3（官方上限） ---- */
+    var baiduPlan = null;
+    if (mode === 'car') {
+      if (vias.length <= VIA_MAX.baidu) {
+        var navi = baiduNavi(pts, opt), dir = baiduDirection(pts, opt), web = baiduWeb(pts, opt);
+        var bLinks = [];
+        if (os === 'android') {
+          bLinks.push({ kind: 'app', label: '直接开始导航', note: '[SDK逐字印证]' + (vias.length > 1 ? ' 2个以上途经点未实测' : ''),
+            url: toIntent('bdapp', 'com.baidu.BaiduMap', navi, web) });
+          bLinks.push({ kind: 'app-alt', label: '路线规划页', note: '[途经点未证实] SDK 未拼 viaPoints',
+            url: toIntent('bdapp', 'com.baidu.BaiduMap', dir, web) });
+        } else if (os === 'ios') {
+          bLinks.push({ kind: 'app', label: '直接开始导航', note: '[SDK逐字印证]', url: navi });
+          bLinks.push({ kind: 'app-alt', label: '路线规划页', note: '[途经点未证实]', url: dir });
+        }
+        bLinks.push({ kind: 'web', label: '网页版（无途经点）', note: '[二手来源]', url: web });
+        baiduPlan = { app: 'baidu', title: '百度地图', note: '带途经点直接进入导航态（真·一键）',
+          legs: [{ title: '', from: pts[0], to: pts[pts.length - 1], vias: vias, links: bLinks }] };
+      } else {
+        notes.push('百度的「直接开导航」官方最多带 3 个途经点，这条路线有 ' + vias.length +
+          ' 个装不下，已只给高德（全量携带，落规划页多点一次）。');
+      }
+    } else {
+      notes.push('百度的多途经点直达导航仅驾车可用（官方 SDK 仅 driving/neweng 拼 viaPoints），当前出行方式已只给高德。');
+    }
+
+    /* 排序：能直接进导航态的排最前 */
+    if (baiduPlan) plans.push(baiduPlan, amapPlan);
+    else plans.push(amapPlan);
+    pushApple(plans, pts, opt, os);
+
+    return { mode: 'route', coords: true, plans: plans, notes: notes };
   }
 
   return { build: build, chunkRoute: chunkRoute, _apple: appleDirections, VIA_MAX: VIA_MAX, _amapWeb: amapWeb, _amapScheme: amapScheme, _baiduNavi: baiduNavi };
