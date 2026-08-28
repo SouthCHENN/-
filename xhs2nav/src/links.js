@@ -76,6 +76,11 @@
     var m = MODE[opt.mode] || MODE.car;
     var from = seg[0], to = seg[seg.length - 1], vias = seg.slice(1, -1);
     function pt(p) { return hasCoord(p) ? p.lon + ',' + p.lat + ',' + E(p.name) : ',,' + E(p.name); }
+    // 官方 from/to 要求「经度,纬度,名称」；只给名字不成立，退化成搜索页
+    if (!hasCoord(to)) {
+      return 'https://uri.amap.com/search?keyword=' + E(to.name) +
+             '&src=' + E(opt.src || 'zhaozhezou') + '&callnative=1';
+    }
     var u = 'https://uri.amap.com/navigation?from=' + pt(from) + '&to=' + pt(to);
     if (vias.length) u += '&via=' + vias.map(pt).join(opt.viaSep === ';' ? '%3B' : PIPE);
     u += '&mode=' + m.amapWeb + '&policy=1&coordinate=gaode&callnative=1&src=' + E(opt.src || 'zhaozhezou');

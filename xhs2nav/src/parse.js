@@ -22,7 +22,9 @@
   var RE_EMOJI = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE00}-\u{FE0F}\u{200B}-\u{200D}\u{20E3}\u{2190}-\u{21FF}\u{2900}-\u{297F}\u{3030}\u{303D}\u{3297}\u{3299}\u{00A9}\u{00AE}]/gu;
 
   function squeeze(s) { return s.replace(/[\s\u3000]+/g, ' ').trim(); }
-  function clean(s) { return squeeze(String(s == null ? '' : s).replace(RE_EMOJI, '')); }
+  /* emoji 替换成空格而非删除：『深圳湾公园🌊骑行超舒服』里的 emoji 是
+     「名称|点评」的分界信号，直接删会把两段粘成一个词。 */
+  function clean(s) { return squeeze(String(s == null ? '' : s).replace(RE_EMOJI, ' ')); }
 
   var CIRCLED = '\u2460\u2461\u2462\u2463\u2464\u2465\u2466\u2467\u2468\u2469\u246A\u246B\u246C\u246D\u246E\u246F\u2470\u2471\u2472\u2473';
   /* 归一化：全角数字→半角、圈号/keycap→「N.」、链接符→哨兵，最后剥表情。顺序不可调换。 */
@@ -31,8 +33,8 @@
       .replace(/[\uFF10-\uFF19]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); })
       .replace(/[\u2460-\u2473]/g, function (c) { return String(CIRCLED.indexOf(c) + 1) + '.'; })
       .replace(/(\d)\uFE0F?\u20E3/g, '$1.')
-      .replace(/\s*(?:\u2192|\u27A1|\u21D2|\u27F6|=>|->|\u2014{1,3}|\u2013{1,2}|\u300B|>{1,2}|\uFF1E|\u3001)\s*/g, SEP)
-      .replace(RE_EMOJI, ''));
+      .replace(/\s*(?:\u2192|\u27A1|\u21D2|\u27F6|=>|->|\u2014{1,3}|\u300B|>{1,2}|\uFF1E|\u3001)\s*/g, SEP)
+      .replace(RE_EMOJI, ' '));
   }
 
   var CN_NUM = { '\u96f6': 0, '\u4e00': 1, '\u4e8c': 2, '\u4e24': 2, '\u4e09': 3, '\u56db': 4, '\u4e94': 5, '\u516d': 6, '\u4e03': 7, '\u516b': 8, '\u4e5d': 9, '\u5341': 10 };

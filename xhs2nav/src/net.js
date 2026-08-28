@@ -66,9 +66,10 @@
   }
 
   /** 图片压缩：控制上传体积与 token 成本，同时保证中文小字仍可辨认。
-   *  Claude 高分辨率档长边上限 2576px；国内模型普遍也在 2000px 上下，取 1600 兼顾清晰与体积。 */
+   *  iPhone 截图 1179×2556 原图在 Claude 高分辨率档约 3956 视觉 token，
+   *  压到长边 1280 后大幅下降；行程图字号大，实测几乎不掉准确率。 */
   function downscale(file, maxEdge, quality) {
-    maxEdge = maxEdge || 1600;
+    maxEdge = maxEdge || 1280;
     quality = quality == null ? 0.85 : quality;
     return new Promise(function (resolve, reject) {
       var url = URL.createObjectURL(file);
