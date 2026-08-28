@@ -30,10 +30,9 @@
   </div>
 
   <div id="paneText">
-    <textarea id="text" placeholder="把小红书笔记的文案粘贴进来&#10;&#10;支持 Day1/第一天 分天、1️⃣ 序号、09:00 时间线、A→B→C 箭头串联"></textarea>
-    <button class="btn" id="btnParse">解析文案</button>
+    <textarea id="text" placeholder="粘贴进来就行，地点自动出现在下面&#10;&#10;截图怎么变文字：长按截图里的文字 → 复制（iOS 实况文本 / 小米「识别文字」都行，不用任何 App）"></textarea>
     <button class="btn plain" id="btnDemo">填入示例看看效果</button>
-    <div class="note">纯本地解析，不联网，不上传。</div>
+    <div class="note">边贴边解析，纯本地，不联网不上传。支持 Day1 分天、1️⃣ 序号、时间线、A→B→C 箭头。</div>
   </div>
 
   <div id="paneImg" style="display:none">
@@ -58,19 +57,16 @@
 
   <div class="georow">
     <div class="row">
-      <div><label>城市（消歧用）</label><input id="city" placeholder="深圳"></div>
+      <div><label>城市（帮定位更准）</label><input id="city" placeholder="深圳"></div>
       <div><label>出行方式</label>
         <select id="mode"><option value="car">驾车</option><option value="bus">公交</option>
           <option value="walk">步行</option><option value="ride">骑行</option></select></div>
     </div>
-    <button class="btn ghost" id="btnGeo">解析坐标（可选）</button>
-    <div id="geoStatus"></div>
-    <div class="note">
-      不做这步<b>高德/百度</b>只能逐段导航——它们的途经点参数要经纬度，只给名字传不了。
-      <b>Apple 地图例外</b>：途经点接受纯地名，iOS 上不填 Key 也能一条链接走完。
-      解析坐标需要在设置里填地图 Key。
-    </div>
     <label class="chk"><input type="checkbox" id="originIsMe"> 用「我的位置」当起点（第一个地点变成途经点）</label>
+    <div class="note">
+      你不需要管坐标：点「出发」时工具自动在背后定位（免 Key 走 OpenStreetMap；
+      在设置里填了地图 Key 会自动改用高德/百度，更准）。定位失败的站也不挡路——自动退成逐段导航。
+    </div>
   </div>
 </section>
 

@@ -195,10 +195,9 @@ details>*:not(summary){margin-bottom:12px}
   </div>
 
   <div id="paneText">
-    <textarea id="text" placeholder="把小红书笔记的文案粘贴进来&#10;&#10;支持 Day1/第一天 分天、1️⃣ 序号、09:00 时间线、A→B→C 箭头串联"></textarea>
-    <button class="btn" id="btnParse">解析文案</button>
+    <textarea id="text" placeholder="粘贴进来就行，地点自动出现在下面&#10;&#10;截图怎么变文字：长按截图里的文字 → 复制（iOS 实况文本 / 小米「识别文字」都行，不用任何 App）"></textarea>
     <button class="btn plain" id="btnDemo">填入示例看看效果</button>
-    <div class="note">纯本地解析，不联网，不上传。</div>
+    <div class="note">边贴边解析，纯本地，不联网不上传。支持 Day1 分天、1️⃣ 序号、时间线、A→B→C 箭头。</div>
   </div>
 
   <div id="paneImg" style="display:none">
@@ -223,19 +222,16 @@ details>*:not(summary){margin-bottom:12px}
 
   <div class="georow">
     <div class="row">
-      <div><label>城市（消歧用）</label><input id="city" placeholder="深圳"></div>
+      <div><label>城市（帮定位更准）</label><input id="city" placeholder="深圳"></div>
       <div><label>出行方式</label>
         <select id="mode"><option value="car">驾车</option><option value="bus">公交</option>
           <option value="walk">步行</option><option value="ride">骑行</option></select></div>
     </div>
-    <button class="btn ghost" id="btnGeo">解析坐标（可选）</button>
-    <div id="geoStatus"></div>
-    <div class="note">
-      不做这步<b>高德/百度</b>只能逐段导航——它们的途经点参数要经纬度，只给名字传不了。
-      <b>Apple 地图例外</b>：途经点接受纯地名，iOS 上不填 Key 也能一条链接走完。
-      解析坐标需要在设置里填地图 Key。
-    </div>
     <label class="chk"><input type="checkbox" id="originIsMe"> 用「我的位置」当起点（第一个地点变成途经点）</label>
+    <div class="note">
+      你不需要管坐标：点「出发」时工具自动在背后定位（免 Key 走 OpenStreetMap；
+      在设置里填了地图 Key 会自动改用高德/百度，更准）。定位失败的站也不挡路——自动退成逐段导航。
+    </div>
   </div>
 </section>
 
@@ -1260,6 +1256,36 @@ Day2️⃣
     var th = Math.atan2(y, x) - 0.000003 * Math.cos(x * X_PI);
     return { lon: z * Math.cos(th), lat: z * Math.sin(th) };
   }
+  /* ---- WGS-84 → GCJ-02（标准国测偏移算法）。Nominatim 返回 WGS-84。 ---- */
+  var GCJ_A = 6378245.0, GCJ_EE = 0.00669342162296594323;
+  function outOfChina(lon, lat) {
+    return !(lon > 72.004 && lon < 137.8347 && lat > 0.8293 && lat < 55.8271);
+  }
+  function tLat(x, y) {
+    var r = -100 + 2 * x + 3 * y + 0.2 * y * y + 0.1 * x * y + 0.2 * Math.sqrt(Math.abs(x));
+    r += (20 * Math.sin(6 * x * Math.PI) + 20 * Math.sin(2 * x * Math.PI)) * 2 / 3;
+    r += (20 * Math.sin(y * Math.PI) + 40 * Math.sin(y / 3 * Math.PI)) * 2 / 3;
+    r += (160 * Math.sin(y / 12 * Math.PI) + 320 * Math.sin(y * Math.PI / 30)) * 2 / 3;
+    return r;
+  }
+  function tLon(x, y) {
+    var r = 300 + x + 2 * y + 0.1 * x * x + 0.1 * x * y + 0.1 * Math.sqrt(Math.abs(x));
+    r += (20 * Math.sin(6 * x * Math.PI) + 20 * Math.sin(2 * x * Math.PI)) * 2 / 3;
+    r += (20 * Math.sin(x * Math.PI) + 40 * Math.sin(x / 3 * Math.PI)) * 2 / 3;
+    r += (150 * Math.sin(x / 12 * Math.PI) + 300 * Math.sin(x / 30 * Math.PI)) * 2 / 3;
+    return r;
+  }
+  function wgs84ToGcj02(lon, lat) {
+    if (outOfChina(lon, lat)) return { lon: lon, lat: lat };
+    var dLat = tLat(lon - 105.0, lat - 35.0), dLon = tLon(lon - 105.0, lat - 35.0);
+    var radLat = lat / 180.0 * Math.PI, magic = Math.sin(radLat);
+    magic = 1 - GCJ_EE * magic * magic;
+    var sqrtMagic = Math.sqrt(magic);
+    dLat = (dLat * 180.0) / ((GCJ_A * (1 - GCJ_EE)) / (magic * sqrtMagic) * Math.PI);
+    dLon = (dLon * 180.0) / (GCJ_A / sqrtMagic * Math.cos(radLat) * Math.PI);
+    return { lon: lon + dLon, lat: lat + dLat };
+  }
+
   /** GCJ-02 → BD-09。备用。 */
   function gcj02ToBd09(lon, lat) {
     var z = Math.sqrt(lon * lon + lat * lat) + 0.00002 * Math.sin(lat * X_PI);
@@ -1311,6 +1337,31 @@ Day2️⃣
     });
   }
 
+  /* ---------------- OpenStreetMap Nominatim（免 Key 兜底） ----------------
+   * 用途：用户什么都没填时，让「出发」仍能在背后拿到坐标。
+   * 事实边界（据实标注）：
+   *  - Nominatim 允许浏览器直连（返回 ACAO:*）是其文档化用途——高置信，
+   *    但本工具构建环境的出口代理封了它，未能亲测；
+   *  - 中文 POI 覆盖依赖 OSM 社区数据：大景点通常有，小店常缺，需真机验证；
+   *  - 使用政策限 1 请求/秒，故请求间强制 1.1s 间隔；
+   *  - 返回 WGS-84，转成 GCJ-02 再交给链接层。 */
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+  async function osmSearch(name, cfg, city) {
+    var q = city && name.indexOf(city) < 0 ? name + ' ' + city : name;
+    var url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=3' +
+      '&accept-language=zh-CN&countrycodes=cn&q=' + encodeURIComponent(q);
+    var j = await Net.request(url, { proxy: cfg.proxy, timeoutMs: 12000 });
+    return (Array.isArray(j) ? j : []).map(function (r) {
+      var c = wgs84ToGcj02(parseFloat(r.lon), parseFloat(r.lat));
+      return {
+        name: String(r.display_name || name).split(',')[0] || name,
+        address: String(r.display_name || ''), city: '',
+        lon: c.lon, lat: c.lat, source: 'osm', uid: String(r.place_id || ''),
+      };
+    });
+  }
+
   /* ---------------- 高德 ---------------- */
 
   async function amapSearch(name, cfg, city) {
@@ -1353,9 +1404,11 @@ Day2️⃣
    * @returns {Promise<Array>} [{name, resolved:bool, lon, lat, matched, candidates, error}]
    */
   async function resolveAll(stops, cfg, onProgress) {
-    var search = cfg.provider === 'amap' ? amapSearch : baiduSearch;
+    var search = cfg.provider === 'amap' ? amapSearch :
+                 cfg.provider === 'osm' ? osmSearch : baiduSearch;
     var out = [], prev = null;
     for (var i = 0; i < stops.length; i++) {
+      if (cfg.provider === 'osm' && i > 0) await sleep(1100);   // Nominatim 使用政策 1 req/s
       var s = stops[i], rec = { name: s.name, note: s.note || '', resolved: false };
       try {
         var cands = await search(s.name, cfg, cfg.city);
@@ -1391,7 +1444,7 @@ Day2️⃣
 
   return {
     resolveAll: resolveAll, pickBest: pickBest, distM: distM,
-    bd09ToGcj02: bd09ToGcj02, gcj02ToBd09: gcj02ToBd09,
+    bd09ToGcj02: bd09ToGcj02, gcj02ToBd09: gcj02ToBd09, wgs84ToGcj02: wgs84ToGcj02,
   };
 });
 
@@ -1536,7 +1589,6 @@ Day2️⃣
     var n = allStops().length;
     var got = allStops().filter(function (s) { return s.lat != null; }).length;
     $('#stopCount').textContent = n ? n + ' 个地点' + (got ? '，' + got + ' 个已定位' : '') : '';
-    $('#btnGeo').disabled = !n || !!S.busy;
     $('#btnBuild').disabled = n < 2 || !!S.busy;
     $('#goCnt').innerHTML = n < 2
       ? '还没有路线<br>至少要 2 个地点'
@@ -1612,13 +1664,17 @@ Day2️⃣
     save(); renderStops(); renderCfg(); renderOut(null);
   }
 
-  function doParseText() {
-    var t = $('#text').value;
-    if (!t.trim()) { toast('先粘贴点文案'); return; }
-    var r = ZZParse.parse(t);
-    if (!r.days.length) { toast('没解析出地点，可手动添加'); return; }
-    fromParsed(r.days, '');
-    toast('解析出 ' + r.stops.length + ' 个地点，请核对');
+  /* 粘贴/输入即解析：不设按钮。清空文案则清空列表。 */
+  var parseT;
+  function applyText(immediate) {
+    clearTimeout(parseT);
+    parseT = setTimeout(function () {
+      var t = $('#text').value;
+      if (!t.trim()) { if (S.days.length) { S.days = []; save(); renderStops(); renderOut(null); } return; }
+      var r = ZZParse.parse(t);
+      if (!r.days.length) return;                 // 没解析出来就保持现状，不打扰
+      fromParsed(r.days, '');
+    }, immediate ? 0 : 400);
   }
 
   async function doExtractImages() {
@@ -1643,36 +1699,32 @@ Day2️⃣
     S.busy = ''; renderInput(); renderStops();
   }
 
-  async function doGeocode() {
+  /** 单一入口：点「出发」。缺坐标的站先在背后定位（不打扰用户），然后生成链接。
+   *  定位服务：填了地图 Key 用百度/高德（更准）；否则免 Key 走 OSM Nominatim。
+   *  任何站定位失败都不阻塞——links.build 自己会降级（逐段导航 / Apple 纯地名）。 */
+  async function doGo() {
     var stops = allStops();
-    if (!stops.length) return;
-    if (!S.cfg.geoAk) {
-      $('#geoStatus').innerHTML = '<span class="note warn">没填地图 Key。' +
-        (S.cfg.geoProvider === 'baidu' ? '百度：lbsyun.baidu.com 控制台创建应用，类型选「服务端」，开通「地点检索」。'
-                                       : '高德：console.amap.com 创建应用，Key 类型选「Web服务」。') +
-        '</span>';
-      return;
-    }
-    S.busy = 'geo'; renderStops();
-    try {
-      var res = await ZZGeo.resolveAll(stops, {
-        provider: S.cfg.geoProvider, ak: S.cfg.geoAk, proxy: S.cfg.proxy, city: S.city.trim(),
+    if (stops.length < 2 || S.busy) return;
+    var missing = stops.filter(function (s) { return s.lat == null; });
+    if (missing.length) {
+      S.busy = 'geo'; renderStops();
+      var provider = S.cfg.geoAk ? S.cfg.geoProvider : 'osm';
+      $('#goCnt').innerHTML = '<span class="spin"></span> 正在定位 0/' + missing.length +
+        (provider === 'osm' ? ' <span style="opacity:.7">(免Key)</span>' : '');
+      var res = await ZZGeo.resolveAll(missing, {
+        provider: provider, ak: S.cfg.geoAk, proxy: S.cfg.proxy, city: S.city.trim(),
       }, function (i, n) {
-        $('#geoStatus').innerHTML = '<span class="spin"></span> 定位中 ' + i + '/' + n;
+        $('#goCnt').innerHTML = '<span class="spin"></span> 正在定位 ' + i + '/' + n;
       });
       res.forEach(function (r, i) {
-        var s = stops[i];
-        if (r.resolved) { s.lon = r.lon; s.lat = r.lat; s.matched = r.matched; s.address = r.address; s.error = ''; }
-        else { s.lon = s.lat = null; s.matched = ''; s.address = ''; s.error = r.error || '未定位'; }
+        var s2 = missing[i];
+        if (r.resolved) { s2.lon = r.lon; s2.lat = r.lat; s2.matched = r.matched; s2.address = r.address; s2.error = ''; }
+        else { s2.error = r.error || '未定位'; }
       });
-      var ok = res.filter(function (r) { return r.resolved; }).length;
-      $('#geoStatus').innerHTML = '<span class="note' + (ok === res.length ? '' : ' warn') + '">已定位 ' +
-        ok + '/' + res.length + (ok === res.length ? '' : '。未定位的可改名后重试，或直接删掉。') + '</span>';
       save();
-    } catch (e) {
-      $('#geoStatus').innerHTML = '<span class="note err">' + esc(e.message) + '</span>';
+      S.busy = ''; renderStops();
     }
-    S.busy = ''; renderStops();
+    doBuild();
   }
 
   function doBuild() {
@@ -1711,10 +1763,9 @@ Day2️⃣
   function bind() {
     $('#tabText').onclick = function () { S.tab = 'text'; renderInput(); };
     $('#tabImg').onclick = function () { S.tab = 'img'; renderInput(); };
-    $('#btnParse').onclick = doParseText;
+    $('#text').addEventListener('input', function () { applyText(false); });
     $('#btnExtract').onclick = doExtractImages;
-    $('#btnGeo').onclick = doGeocode;
-    $('#btnBuild').onclick = doBuild;
+    $('#btnBuild').onclick = doGo;
 
     $('#file').onchange = async function (e) {
       var files = Array.prototype.slice.call(e.target.files || []).slice(0, 8);
@@ -1777,7 +1828,7 @@ Day2️⃣
     $('#amapLoose').onchange = function (e) { S.amapLoose = e.target.checked; save(); };
     $('#btnDemo').onclick = function () {
       $('#text').value = document.getElementById('demo').textContent.trim();
-      S.tab = 'text'; renderInput();
+      S.tab = 'text'; renderInput(); applyText(true);
     };
   }
 

@@ -26,6 +26,36 @@
     var th = Math.atan2(y, x) - 0.000003 * Math.cos(x * X_PI);
     return { lon: z * Math.cos(th), lat: z * Math.sin(th) };
   }
+  /* ---- WGS-84 → GCJ-02（标准国测偏移算法）。Nominatim 返回 WGS-84。 ---- */
+  var GCJ_A = 6378245.0, GCJ_EE = 0.00669342162296594323;
+  function outOfChina(lon, lat) {
+    return !(lon > 72.004 && lon < 137.8347 && lat > 0.8293 && lat < 55.8271);
+  }
+  function tLat(x, y) {
+    var r = -100 + 2 * x + 3 * y + 0.2 * y * y + 0.1 * x * y + 0.2 * Math.sqrt(Math.abs(x));
+    r += (20 * Math.sin(6 * x * Math.PI) + 20 * Math.sin(2 * x * Math.PI)) * 2 / 3;
+    r += (20 * Math.sin(y * Math.PI) + 40 * Math.sin(y / 3 * Math.PI)) * 2 / 3;
+    r += (160 * Math.sin(y / 12 * Math.PI) + 320 * Math.sin(y * Math.PI / 30)) * 2 / 3;
+    return r;
+  }
+  function tLon(x, y) {
+    var r = 300 + x + 2 * y + 0.1 * x * x + 0.1 * x * y + 0.1 * Math.sqrt(Math.abs(x));
+    r += (20 * Math.sin(6 * x * Math.PI) + 20 * Math.sin(2 * x * Math.PI)) * 2 / 3;
+    r += (20 * Math.sin(x * Math.PI) + 40 * Math.sin(x / 3 * Math.PI)) * 2 / 3;
+    r += (150 * Math.sin(x / 12 * Math.PI) + 300 * Math.sin(x / 30 * Math.PI)) * 2 / 3;
+    return r;
+  }
+  function wgs84ToGcj02(lon, lat) {
+    if (outOfChina(lon, lat)) return { lon: lon, lat: lat };
+    var dLat = tLat(lon - 105.0, lat - 35.0), dLon = tLon(lon - 105.0, lat - 35.0);
+    var radLat = lat / 180.0 * Math.PI, magic = Math.sin(radLat);
+    magic = 1 - GCJ_EE * magic * magic;
+    var sqrtMagic = Math.sqrt(magic);
+    dLat = (dLat * 180.0) / ((GCJ_A * (1 - GCJ_EE)) / (magic * sqrtMagic) * Math.PI);
+    dLon = (dLon * 180.0) / (GCJ_A / sqrtMagic * Math.cos(radLat) * Math.PI);
+    return { lon: lon + dLon, lat: lat + dLat };
+  }
+
   /** GCJ-02 → BD-09。备用。 */
   function gcj02ToBd09(lon, lat) {
     var z = Math.sqrt(lon * lon + lat * lat) + 0.00002 * Math.sin(lat * X_PI);
@@ -77,6 +107,31 @@
     });
   }
 
+  /* ---------------- OpenStreetMap Nominatim（免 Key 兜底） ----------------
+   * 用途：用户什么都没填时，让「出发」仍能在背后拿到坐标。
+   * 事实边界（据实标注）：
+   *  - Nominatim 允许浏览器直连（返回 ACAO:*）是其文档化用途——高置信，
+   *    但本工具构建环境的出口代理封了它，未能亲测；
+   *  - 中文 POI 覆盖依赖 OSM 社区数据：大景点通常有，小店常缺，需真机验证；
+   *  - 使用政策限 1 请求/秒，故请求间强制 1.1s 间隔；
+   *  - 返回 WGS-84，转成 GCJ-02 再交给链接层。 */
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+  async function osmSearch(name, cfg, city) {
+    var q = city && name.indexOf(city) < 0 ? name + ' ' + city : name;
+    var url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=3' +
+      '&accept-language=zh-CN&countrycodes=cn&q=' + encodeURIComponent(q);
+    var j = await Net.request(url, { proxy: cfg.proxy, timeoutMs: 12000 });
+    return (Array.isArray(j) ? j : []).map(function (r) {
+      var c = wgs84ToGcj02(parseFloat(r.lon), parseFloat(r.lat));
+      return {
+        name: String(r.display_name || name).split(',')[0] || name,
+        address: String(r.display_name || ''), city: '',
+        lon: c.lon, lat: c.lat, source: 'osm', uid: String(r.place_id || ''),
+      };
+    });
+  }
+
   /* ---------------- 高德 ---------------- */
 
   async function amapSearch(name, cfg, city) {
@@ -119,9 +174,11 @@
    * @returns {Promise<Array>} [{name, resolved:bool, lon, lat, matched, candidates, error}]
    */
   async function resolveAll(stops, cfg, onProgress) {
-    var search = cfg.provider === 'amap' ? amapSearch : baiduSearch;
+    var search = cfg.provider === 'amap' ? amapSearch :
+                 cfg.provider === 'osm' ? osmSearch : baiduSearch;
     var out = [], prev = null;
     for (var i = 0; i < stops.length; i++) {
+      if (cfg.provider === 'osm' && i > 0) await sleep(1100);   // Nominatim 使用政策 1 req/s
       var s = stops[i], rec = { name: s.name, note: s.note || '', resolved: false };
       try {
         var cands = await search(s.name, cfg, cfg.city);
@@ -157,6 +214,6 @@
 
   return {
     resolveAll: resolveAll, pickBest: pickBest, distM: distM,
-    bd09ToGcj02: bd09ToGcj02, gcj02ToBd09: gcj02ToBd09,
+    bd09ToGcj02: bd09ToGcj02, gcj02ToBd09: gcj02ToBd09, wgs84ToGcj02: wgs84ToGcj02,
   };
 });

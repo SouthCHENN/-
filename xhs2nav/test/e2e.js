@@ -10,7 +10,7 @@ const path = require('path');
   const page = await ctx.newPage();
   const errs = [];
   page.on('pageerror', e => errs.push('PAGEERROR: ' + e.message));
-  page.on('console', m => { if (m.type() === 'error') errs.push('CONSOLE: ' + m.text()); });
+  page.on('console', m => { if (m.type() === 'error' && !/net::ERR|Failed to load resource/.test(m.text())) errs.push('CONSOLE: ' + m.text()); });
 
   await page.goto('file://' + path.resolve('index.html'));
   await page.waitForTimeout(300);
@@ -19,17 +19,16 @@ const path = require('path');
 
   // --- 1. 示例 → 解析 ---
   await page.click('#btnDemo');
-  await page.click('#btnParse');
-  await page.waitForTimeout(200);
+  await page.waitForTimeout(300);   // 自动解析（demo 立即触发）
   const names = await page.$$eval('#stops .nm', els => els.map(e => e.value));
   const days = await page.$$eval('#stops .daylabel', els => els.map(e => e.textContent));
   console.log('解析出天:', JSON.stringify(days));
   console.log('解析出地点:', JSON.stringify(names));
   console.log('计数:', await page.textContent('#stopCount'));
 
-  // --- 2. 无坐标 → 生成（应降级为分段） ---
+  // --- 2. 无坐标 → 出发：先静默尝试免 Key 定位（本环境离线，立即失败）→ 应自动降级为分段 ---
   await page.click('#btnBuild');
-  await page.waitForTimeout(200);
+  await page.waitForTimeout(1500);
   const planTitles = await page.$$eval('.plan .t', e => e.map(x => x.textContent));
   const legCount = await page.$$eval('.leg', e => e.length);
   const firstHref = await page.getAttribute('.leg .lk a', 'href');
@@ -52,7 +51,7 @@ const path = require('path');
     const raw = JSON.parse(localStorage.getItem('lushu_v1'));
     const C = [[113.9784,22.4936],[113.9166,22.4818],[113.9203,22.4874],[113.9738,22.5389],[113.9835,22.5411]];
     let i = 0;
-    raw.days.forEach(d => { d.stops = d.stops.filter(s => s.name); d.stops.forEach(s => { if (C[i]) { s.lon = C[i][0]; s.lat = C[i][1]; s.matched = s.name; } i++; }); });
+    raw.days.forEach(d => { d.stops = d.stops.filter(s => s.name); d.stops.forEach(s => { if (C[i]) { s.lon = C[i][0]; s.lat = C[i][1]; s.matched = s.name; s.error = ''; } i++; }); });
     raw.city = '深圳';
     localStorage.setItem('lushu_v1', JSON.stringify(raw));
   });
@@ -80,9 +79,9 @@ const path = require('path');
   const ip = await ios.newPage();
   ip.on('pageerror', e => errs.push('IOS PAGEERROR: ' + e.message));
   await ip.goto('file://' + path.resolve('index.html'));
-  await ip.click('#btnDemo'); await ip.click('#btnParse'); await ip.waitForTimeout(200);
+  await ip.click('#btnDemo'); await ip.waitForTimeout(300);
   await ip.fill('#city', '深圳');
-  await ip.click('#btnBuild'); await ip.waitForTimeout(250);
+  await ip.click('#btnBuild'); await ip.waitForTimeout(1500);
   console.log('\n[iOS 无坐标] 环境:', await ip.textContent('#env'));
   console.log('[iOS 无坐标] plans:', JSON.stringify(await ip.$$eval('.plan .t', e => e.map(x => x.textContent))));
   const appleLinks = await ip.$$eval('.leg .lk a', as => as.map(a => a.getAttribute('href')).filter(h => h.includes('maps.apple.com')));

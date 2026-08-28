@@ -137,7 +137,6 @@
     var n = allStops().length;
     var got = allStops().filter(function (s) { return s.lat != null; }).length;
     $('#stopCount').textContent = n ? n + ' 个地点' + (got ? '，' + got + ' 个已定位' : '') : '';
-    $('#btnGeo').disabled = !n || !!S.busy;
     $('#btnBuild').disabled = n < 2 || !!S.busy;
     $('#goCnt').innerHTML = n < 2
       ? '还没有路线<br>至少要 2 个地点'
@@ -213,13 +212,17 @@
     save(); renderStops(); renderCfg(); renderOut(null);
   }
 
-  function doParseText() {
-    var t = $('#text').value;
-    if (!t.trim()) { toast('先粘贴点文案'); return; }
-    var r = ZZParse.parse(t);
-    if (!r.days.length) { toast('没解析出地点，可手动添加'); return; }
-    fromParsed(r.days, '');
-    toast('解析出 ' + r.stops.length + ' 个地点，请核对');
+  /* 粘贴/输入即解析：不设按钮。清空文案则清空列表。 */
+  var parseT;
+  function applyText(immediate) {
+    clearTimeout(parseT);
+    parseT = setTimeout(function () {
+      var t = $('#text').value;
+      if (!t.trim()) { if (S.days.length) { S.days = []; save(); renderStops(); renderOut(null); } return; }
+      var r = ZZParse.parse(t);
+      if (!r.days.length) return;                 // 没解析出来就保持现状，不打扰
+      fromParsed(r.days, '');
+    }, immediate ? 0 : 400);
   }
 
   async function doExtractImages() {
@@ -244,36 +247,32 @@
     S.busy = ''; renderInput(); renderStops();
   }
 
-  async function doGeocode() {
+  /** 单一入口：点「出发」。缺坐标的站先在背后定位（不打扰用户），然后生成链接。
+   *  定位服务：填了地图 Key 用百度/高德（更准）；否则免 Key 走 OSM Nominatim。
+   *  任何站定位失败都不阻塞——links.build 自己会降级（逐段导航 / Apple 纯地名）。 */
+  async function doGo() {
     var stops = allStops();
-    if (!stops.length) return;
-    if (!S.cfg.geoAk) {
-      $('#geoStatus').innerHTML = '<span class="note warn">没填地图 Key。' +
-        (S.cfg.geoProvider === 'baidu' ? '百度：lbsyun.baidu.com 控制台创建应用，类型选「服务端」，开通「地点检索」。'
-                                       : '高德：console.amap.com 创建应用，Key 类型选「Web服务」。') +
-        '</span>';
-      return;
-    }
-    S.busy = 'geo'; renderStops();
-    try {
-      var res = await ZZGeo.resolveAll(stops, {
-        provider: S.cfg.geoProvider, ak: S.cfg.geoAk, proxy: S.cfg.proxy, city: S.city.trim(),
+    if (stops.length < 2 || S.busy) return;
+    var missing = stops.filter(function (s) { return s.lat == null; });
+    if (missing.length) {
+      S.busy = 'geo'; renderStops();
+      var provider = S.cfg.geoAk ? S.cfg.geoProvider : 'osm';
+      $('#goCnt').innerHTML = '<span class="spin"></span> 正在定位 0/' + missing.length +
+        (provider === 'osm' ? ' <span style="opacity:.7">(免Key)</span>' : '');
+      var res = await ZZGeo.resolveAll(missing, {
+        provider: provider, ak: S.cfg.geoAk, proxy: S.cfg.proxy, city: S.city.trim(),
       }, function (i, n) {
-        $('#geoStatus').innerHTML = '<span class="spin"></span> 定位中 ' + i + '/' + n;
+        $('#goCnt').innerHTML = '<span class="spin"></span> 正在定位 ' + i + '/' + n;
       });
       res.forEach(function (r, i) {
-        var s = stops[i];
-        if (r.resolved) { s.lon = r.lon; s.lat = r.lat; s.matched = r.matched; s.address = r.address; s.error = ''; }
-        else { s.lon = s.lat = null; s.matched = ''; s.address = ''; s.error = r.error || '未定位'; }
+        var s2 = missing[i];
+        if (r.resolved) { s2.lon = r.lon; s2.lat = r.lat; s2.matched = r.matched; s2.address = r.address; s2.error = ''; }
+        else { s2.error = r.error || '未定位'; }
       });
-      var ok = res.filter(function (r) { return r.resolved; }).length;
-      $('#geoStatus').innerHTML = '<span class="note' + (ok === res.length ? '' : ' warn') + '">已定位 ' +
-        ok + '/' + res.length + (ok === res.length ? '' : '。未定位的可改名后重试，或直接删掉。') + '</span>';
       save();
-    } catch (e) {
-      $('#geoStatus').innerHTML = '<span class="note err">' + esc(e.message) + '</span>';
+      S.busy = ''; renderStops();
     }
-    S.busy = ''; renderStops();
+    doBuild();
   }
 
   function doBuild() {
@@ -312,10 +311,9 @@
   function bind() {
     $('#tabText').onclick = function () { S.tab = 'text'; renderInput(); };
     $('#tabImg').onclick = function () { S.tab = 'img'; renderInput(); };
-    $('#btnParse').onclick = doParseText;
+    $('#text').addEventListener('input', function () { applyText(false); });
     $('#btnExtract').onclick = doExtractImages;
-    $('#btnGeo').onclick = doGeocode;
-    $('#btnBuild').onclick = doBuild;
+    $('#btnBuild').onclick = doGo;
 
     $('#file').onchange = async function (e) {
       var files = Array.prototype.slice.call(e.target.files || []).slice(0, 8);
@@ -378,7 +376,7 @@
     $('#amapLoose').onchange = function (e) { S.amapLoose = e.target.checked; save(); };
     $('#btnDemo').onclick = function () {
       $('#text').value = document.getElementById('demo').textContent.trim();
-      S.tab = 'text'; renderInput();
+      S.tab = 'text'; renderInput(); applyText(true);
     };
   }
 
