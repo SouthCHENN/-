@@ -16,6 +16,68 @@ OUTPUT_DIR = os.path.join(os.path.dirname(WORK), "outputs")
 SIGN_APK_PY = "/tmp/sign-apk-py"
 OLD_PKG = "com.zouzhe.app"
 NEW_PKG = "com.zouzhe.pro"
+# The activity is declared with a relative name (".MainActivity"), which resolves
+# against the manifest package attribute. Renaming the package to com.zouzhe.pro
+# would make it resolve to com.zouzhe.pro.MainActivity, but classes.dex still
+# defines com.zouzhe.app.MainActivity -> ClassNotFoundException / crash on launch.
+# Rewrite the activity name to the absolute class so it points at the real DEX
+# class while the app id stays com.zouzhe.pro.
+ACT_OLD = ".MainActivity"
+ACT_NEW = OLD_PKG + ".MainActivity"
+
+import struct
+
+def axml_set_string(data, old, new):
+    """Replace a full string value in a binary AXML string pool and rebuild the
+    chunk (offsets + sizes). Strings are referenced by index elsewhere, so
+    changing a value (not the count/order) keeps the rest of the tree valid."""
+    data = bytearray(data)
+    if struct.unpack_from("<H", data, 0)[0] != 0x0003:
+        raise ValueError("not a binary AXML file")
+    sp = 8  # string pool chunk starts right after the 8-byte root header
+    if struct.unpack_from("<H", data, sp)[0] != 0x0001:
+        raise ValueError("string pool not first chunk")
+    sp_size = struct.unpack_from("<I", data, sp + 4)[0]
+    sc, styc, flags, str_start, sty_start = struct.unpack_from("<IIIII", data, sp + 8)
+    if flags & 0x100:
+        raise ValueError("UTF-8 string pool not supported")
+    if flags & 0x01:
+        raise ValueError("sorted string pool not supported")
+    if styc != 0:
+        raise ValueError("styled string pool not supported")
+    ob = sp + 28
+    offs = [struct.unpack_from("<I", data, ob + i * 4)[0] for i in range(sc)]
+    strbase = sp + str_start
+    def readstr(o):
+        p = strbase + o
+        n = struct.unpack_from("<H", data, p)[0]; p += 2
+        if n & 0x8000:
+            n = ((n & 0x7fff) << 16) | struct.unpack_from("<H", data, p)[0]; p += 2
+        return data[p:p + n * 2].decode("utf-16-le")
+    strings = [readstr(o) for o in offs]
+    if old not in strings:
+        raise ValueError("string %r not found in pool" % old)
+    strings[strings.index(old)] = new
+    # rebuild string data blob
+    newoffs = []
+    blob = bytearray()
+    for s in strings:
+        newoffs.append(len(blob))
+        blob += struct.pack("<H", len(s))
+        blob += s.encode("utf-16-le")
+        blob += b"\x00\x00"
+    while len(blob) % 4 != 0:
+        blob += b"\x00"
+    new_str_start = 28 + sc * 4
+    pool = bytearray(28)
+    struct.pack_into("<HH", pool, 0, 0x0001, 28)          # type, header size
+    struct.pack_into("<IIIII", pool, 8, sc, 0, flags, new_str_start, 0)
+    pool += b"".join(struct.pack("<I", o) for o in newoffs)
+    pool += blob
+    struct.pack_into("<I", pool, 4, len(pool))            # chunk size
+    newdata = bytearray(data[:sp]) + pool + data[sp + sp_size:]
+    struct.pack_into("<I", newdata, 4, len(newdata))      # root total size
+    return bytes(newdata)
 
 def build_unsigned(version):
     orig_zip = zipfile.ZipFile(ORIG_APK, "r")
@@ -36,6 +98,9 @@ def build_unsigned(version):
     manifest = bytearray(orig_zip.read("AndroidManifest.xml"))
     p = manifest.find(old_utf16)
     if p >= 0: manifest[p:p+len(old_utf16)] = new_utf16
+    # After the package rename, point the (relative) launcher activity at its real
+    # absolute class in classes.dex so it is still found under the new package id.
+    manifest = bytearray(axml_set_string(bytes(manifest), ACT_OLD, ACT_NEW))
     arsc = bytearray(orig_zip.read("resources.arsc"))
     p = arsc.find(old_utf16)
     if p >= 0: arsc[p:p+len(old_utf16)] = new_utf16
