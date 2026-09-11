@@ -1,3 +1,8 @@
 build/
 *.tmp.png
 *.idsig
+
+# APK reproduction build (走哲Pro)
+work/venv/
+work/*.pem
+outputs/*_unsigned.apk
