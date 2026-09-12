@@ -669,6 +669,8 @@ compProto.trip=function(){
       // Adjust LSK for non-italy trips
       var data=TRIP_DATA[tid];
       if(data) this.LSK=data.LSK;
+      // Set the trip year so dateOf()/nowDate()/nowInfo() compute the right phase.
+      if(data&&data.Y) this.Y=data.Y;
       origMethods.componentDidMount.call(this);
     };
 
@@ -760,6 +762,10 @@ compProto.trip=function(){
       var data=TRIP_DATA[tripId];
       if(data) compInst.LSK=data.LSK;
     }
+    // Update the trip year BEFORE nowInfo(): dateOf()/nowDate() read this.Y, so a
+    // 2027 trip left at Italy's 2026 would compute as long past ("旅行已结束").
+    var _yd=TRIP_DATA[tripId];
+    if(_yd&&_yd.Y) compInst.Y=_yd.Y;
 
     // Reset state for new trip
     var ni=compInst.nowInfo();
@@ -1148,24 +1154,35 @@ compProto.trip=function(){
   function tsStart(e){if(state.screen!=='detail')return;var t=e.touches[0];if(!t)return;if(t.clientX<=EDGE){es.active=true;es.x=t.clientX;es.y=t.clientY;es.t=Date.now();if(ind){ind.style.opacity='0.5';ind.style.width='4px';}}}
   function tsMove(e){if(!es.active)return;var t=e.touches[0];if(!t)return;var dx=t.clientX-es.x;if(dx>0&&ind){ind.style.opacity=String(Math.min(0.8,0.3+dx/200));ind.style.width=Math.min(8,3+dx/30)+'px';}}
   function tsEnd(e){if(!es.active)return;es.active=false;if(ind){ind.style.opacity='0';ind.style.width='3px';}var t=e.changedTouches[0];if(!t)return;var dx=t.clientX-es.x,dy=Math.abs(t.clientY-es.y),dt=Date.now()-es.t;if(dx>=SWIPE_D&&dx>dy*2&&dt<SWIPE_T)handleBack();}
-  var fromPopstate=false;
-  function handleBack(){
-    var cv=compInst?compInst.state.view:(state.tripView||'overview');
-    if(cv==='today'||cv==='todo'){
-      exitToOverview();
-      /* Push new state to maintain back stack (works for both edge swipe and popstate) */
-      if(window.history&&window.history.pushState)window.history.pushState({zz:1},'','');
-      showToast('返回总览');
-    }else if(cv==='overview'){
-      exitToList();
-      /* Edge swipe: consume the history state pushed during enterTrip.
-         For popstate: history was already consumed, exitToList just shows list. */
-      if(!fromPopstate){
-        if(window.history&&window.history.back)window.history.back();
-      }
-      showToast('返回行程列表');
+  /* ===== NAVIGATION HIERARCHY =====
+     trip list -> overview -> today/todo -> (node sheet | map overlay)
+     Back moves up exactly one level. Model: while inside a trip there is always
+     exactly ONE extra history entry ("sentinel"). enterTrip pushes it once; every
+     intercepted back that stays inside a trip re-pushes it; the back that reaches
+     the trip list does NOT re-push, so the following back pops the base and lets
+     the app exit. The underlying React app pushes no history of its own. */
+  function zzGoUp(){
+    if(state.screen!=='detail') return 'none';
+    // 1. map overlay open -> just close it (stay on the current level)
+    var mapOv=document.querySelector('.zz-ov.on');
+    if(mapOv){ mapOv.classList.remove('on'); return 'stay'; }
+    // 2. node detail sheet (票根/厕所/节点详情) open -> close, stay in today/todo
+    if(compInst&&compInst.state&&compInst.state.sheetOpen){
+      try{compInst.setP({sheetOpen:false});}catch(e){}
+      return 'stay';
     }
-    fromPopstate=false;
+    // 3. today/todo -> overview
+    var cv=compInst&&compInst.state?compInst.state.view:(state.tripView||'overview');
+    if(cv==='today'||cv==='todo'){ exitToOverview(); showToast('返回总览'); return 'stay'; }
+    // 4. overview -> trip list
+    exitToList(); showToast('返回行程列表'); return 'list';
+  }
+  /* Edge swipe funnels through the SAME path as the system back button (a single
+     source of truth): trigger a history back, which is handled in popstate. */
+  function handleBack(){
+    if(state.screen!=='detail') return;
+    if(window.history&&window.history.back) window.history.back();
+    else zzGoUp();
   }
 
   /* ===== TOAST ===== */
@@ -1229,16 +1246,14 @@ compProto.trip=function(){
     if(!window.__zzPopBound){
       window.__zzPopBound=true;
       window.addEventListener('popstate',function(e){
-        if(state.screen!=='detail')return;
-        /* Close map overlay if open, push state to replace consumed one */
-        var mapOv=document.querySelector('.zz-ov.on');
-        if(mapOv){
-          mapOv.classList.remove('on');
+        if(state.screen!=='detail')return;   // at the trip list -> let the app exit
+        var r=zzGoUp();
+        /* Keep exactly one sentinel while still inside a trip so the next system
+           back also delivers a popstate. On reaching the trip list, do NOT
+           re-push: the next back pops the base entry and exits the app. */
+        if(r==='stay'){
           if(window.history&&window.history.pushState)window.history.pushState({zz:1},'','');
-          return;
         }
-        fromPopstate=true;
-        handleBack();
       });
     }
   }
@@ -1257,8 +1272,12 @@ compProto.trip=function(){
           logoEl.style.cursor='pointer';
           logoEl.addEventListener('click',function(e){
             e.stopPropagation();
-            state.screen='list';state.tripView='overview';
-            saveState();showList();
+            if(state.screen!=='detail')return;
+            /* Jump straight to the trip list from any depth, then consume the one
+               sentinel so history returns to the base (next back exits the app). */
+            var mapOv=document.querySelector('.zz-ov.on');if(mapOv)mapOv.classList.remove('on');
+            if(compInst&&compInst.state&&compInst.state.sheetOpen){try{compInst.setP({sheetOpen:false});}catch(err){}}
+            exitToList();
             if(window.history&&window.history.back)window.history.back();
             showToast('返回行程列表');
           });
